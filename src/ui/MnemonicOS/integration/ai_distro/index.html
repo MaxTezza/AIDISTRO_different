@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AI Distro Shell</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-orbit"></div>
+    <div class="bg-grain"></div>
+
+    <main class="shell">
+      <header class="shell-header">
+        <div class="brand">
+          <div class="brand-mark">AI</div>
+          <div>
+            <div class="brand-title">AI Distro</div>
+            <div class="brand-sub">Assistant Shell</div>
+          </div>
+        </div>
+        <div class="status">
+          <span id="status-dot" class="status-dot"></span>
+          <span id="status-text">Connecting...</span>
+        </div>
+      </header>
+
+      <section class="shell-body">
+        <aside class="context">
+          <h2>Now</h2>
+          <div class="context-card">
+            <div class="context-title" id="context-greeting">Hello.</div>
+            <div class="context-sub" id="context-summary">Say something like “check my gmail” or “open settings”.</div>
+          </div>
+          <div class="context-card">
+            <div class="context-title">Modes</div>
+            <div class="toggle">
+              <span>Voice</span>
+              <button id="voice-toggle" class="toggle-button" data-state="off">Off</button>
+            </div>
+            <div class="toggle">
+              <span>Manual</span>
+              <span class="pill">Always available</span>
+            </div>
+            <div class="toggle">
+              <span>Persona</span>
+              <div class="toggle-group" role="group" aria-label="Persona">
+                <button class="toggle-button persona-button" data-persona="max">Max</button>
+                <button class="toggle-button persona-button" data-persona="alfred">Alfred</button>
+              </div>
+            </div>
+            <div class="toggle">
+              <span>Onboarding</span>
+              <button id="onboarding-restart" class="toggle-button" type="button">Replay</button>
+            </div>
+            <div class="toggle">
+              <span>Calendar Provider</span>
+              <select id="provider-calendar" class="provider-select">
+                <option value="local">Local</option>
+                <option value="google">Google</option>
+                <option value="microsoft">Microsoft</option>
+              </select>
+            </div>
+            <div class="provider-setup" id="calendar-setup">
+              <div class="provider-setup-title">Calendar Setup</div>
+              <div id="calendar-provider-state" class="provider-state unknown">Status: unknown</div>
+              <div class="provider-actions">
+                <button id="calendar-connect-start" class="ghost" type="button">Connect</button>
+                <button id="calendar-test" class="ghost" type="button">Test</button>
+              </div>
+              <a id="calendar-auth-link" class="provider-link hidden" href="#" target="_blank" rel="noopener">Open authorization page</a>
+              <div id="calendar-setup-note" class="provider-note"></div>
+            </div>
+            <div class="toggle">
+              <span>Email Provider</span>
+              <select id="provider-email" class="provider-select">
+                <option value="gmail">Gmail</option>
+                <option value="outlook">Outlook</option>
+                <option value="imap">IMAP</option>
+              </select>
+            </div>
+            <div class="provider-setup" id="email-setup">
+              <div class="provider-setup-title">Email Setup</div>
+              <div id="email-provider-state" class="provider-state unknown">Status: unknown</div>
+              <div class="provider-actions">
+                <button id="email-connect-start" class="ghost" type="button">Connect</button>
+                <button id="email-test" class="ghost" type="button">Test</button>
+              </div>
+              <a id="email-auth-link" class="provider-link hidden" href="#" target="_blank" rel="noopener">Open authorization page</a>
+              <div id="email-setup-note" class="provider-note"></div>
+            </div>
+            <div class="toggle">
+              <span>Weather Provider</span>
+              <select id="provider-weather" class="provider-select">
+                <option value="default">Default (No key)</option>
+                <option value="wttr">Wttr</option>
+                <option value="local">Local fallback</option>
+              </select>
+            </div>
+            <div class="provider-setup" id="weather-setup">
+              <div class="provider-setup-title">Weather Setup</div>
+              <div id="weather-provider-state" class="provider-state unknown">Status: unknown</div>
+              <div class="provider-actions">
+                <button id="weather-test" class="ghost" type="button">Test</button>
+              </div>
+              <div id="weather-setup-note" class="provider-note"></div>
+            </div>
+          </div>
+          <div class="context-card">
+            <div class="context-title">App Tasks</div>
+            <div class="context-sub">Recent install/remove/update activity.</div>
+            <div id="app-tasks-list" class="app-tasks-list">
+              <div class="app-task-empty">No recent app tasks yet.</div>
+            </div>
+          </div>
+          <div class="context-card plugin-catalog">
+            <div class="context-title">
+              Plugin Catalog
+              <span id="plugin-catalog-count" class="plugin-catalog-count"></span>
+            </div>
+            <div class="context-sub">Skills unlocked by manifests and available for voice or shell commands.</div>
+            <div class="plugin-catalog-controls">
+              <select id="plugin-catalog-filter">
+                <option value="">All categories</option>
+              </select>
+              <input id="plugin-catalog-search" type="text" placeholder="Search plugins..." />
+            </div>
+            <div id="plugin-catalog-list" class="plugin-catalog-list">
+              <div class="plugin-card-empty">Loading plugins…</div>
+            </div>
+          </div>
+          <div class="context-card help-card" id="help-card">
+            <div class="context-title">Need help?</div>
+            <div class="context-sub">New to AI Distro? This is your post-install control center.</div>
+            <ul class="help-list">
+              <li><strong>Step 1:</strong> Pick a persona and enable voice if you want spoken responses.</li>
+              <li><strong>Step 2:</strong> Use the Plugin Catalog filters to enable the actions you need—no API keys required, just click your workflow.</li>
+              <li><strong>Step 3:</strong> Remember something (“remember ...”) to test context; view it under the context panel.</li>
+              <li><strong>Step 4:</strong> Need to refresh memory or tasks? Use the shell controls (clear notes/forget tasks) described in documentation.</li>
+            </ul>
+            <div class="help-actions">
+              <button id="clear-memory-notes" class="ghost help-button">Clear remembered notes</button>
+              <button id="forget-recent-tasks" class="ghost help-button">Forget recent tasks</button>
+              <button id="lite-mode-toggle" class="ghost help-button">Enable Lite mode</button>
+            </div>
+          </div>
+          <div class="context-card tag-card">
+            <div class="context-title">Tag Library</div>
+            <div class="context-sub">Collections harvested from your recent notes and tasks.</div>
+            <div id="tag-library-list" class="tag-library-list">
+              <div class="tag-library-empty">Tag library is warming up.</div>
+            </div>
+          </div>
+          <div class="context-card universal-search-card">
+            <div class="context-title">Universal Search</div>
+            <div class="context-sub">Search files, settings, apps, and provider metadata.</div>
+            <div class="universal-search-controls">
+              <input id="global-search-input" type="text" placeholder="Search everything..." />
+              <button id="global-search-button" class="ghost" type="button">Search</button>
+            </div>
+            <div id="global-search-status" class="universal-search-status">Scope: files, settings, apps, providers.</div>
+            <div id="global-search-results" class="universal-search-results">
+              <div class="universal-search-empty">No search yet.</div>
+            </div>
+          </div>
+          <div class="context-card notification-card">
+            <div class="context-title">Notifications</div>
+            <div class="context-sub">What’s happening on your system, explained without jargon.</div>
+            <div id="notification-list" class="notification-list">
+              <div class="notification-empty">No alerts yet. When something notable happens, you’ll see it here.</div>
+            </div>
+            <div class="notification-footer">
+              <a href="#" id="restore-hint" class="notification-hint"> Hold Shift at boot to restore to yesterday </a>
+            </div>
+          </div>
+        </aside>
+
+        <section class="conversation" id="conversation">
+          <div class="message assistant">
+            <div class="avatar">◉</div>
+            <div class="bubble">
+              <div class="name">Assistant</div>
+              <p>I'm ready. Ask me to do anything on your computer.</p>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <footer class="shell-input">
+        <div class="input-wrap">
+          <input id="command-input" type="text" placeholder="Tell me what to do…" autocomplete="off" />
+          <button id="send-button" class="primary">Send</button>
+          <button id="confirm-button" class="ghost hidden">Confirm</button>
+          <button id="mic-button" class="ghost">Start listening</button>
+        </div>
+        <div class="helper-text" id="helper-text">Tip: say your command directly.</div>
+      </footer>
+    </main>
+
+    <section id="onboarding" class="onboarding hidden" aria-live="polite">
+      <div class="onboarding-panel">
+        <div class="onboarding-head">
+          <div class="onboarding-title-wrap">
+            <div class="onboarding-kicker">Onboarding Wizard v1</div>
+            <h1 id="onboarding-title">Welcome</h1>
+          </div>
+          <div class="onboarding-head-actions">
+            <button
+              id="onboarding-exit"
+              class="ghost onboarding-exit"
+              type="button"
+              onclick="(function(){try{localStorage.setItem('ai_distro_force_disable_onboarding','true');localStorage.setItem('ai_distro_onboarding_v1_completed','true');localStorage.setItem('ai_distro_onboarding_v1_completed_at',new Date().toISOString());}catch(e){}var ob=document.getElementById('onboarding');if(ob){ob.classList.add('hidden');}if(window.aiDistroExitSetup){window.aiDistroExitSetup();}})()"
+            >Exit Setup</button>
+            <button id="onboarding-skip" class="ghost" type="button">Skip</button>
+          </div>
+        </div>
+
+        <div class="onboarding-progress-wrap">
+          <div id="onboarding-step-label" class="onboarding-step-label">Step 1 of 5</div>
+          <div class="onboarding-progress">
+            <div id="onboarding-progress-bar" class="onboarding-progress-bar"></div>
+          </div>
+        </div>
+
+        <div id="onboarding-body" class="onboarding-body"></div>
+
+        <div class="onboarding-actions">
+          <button id="onboarding-back" class="ghost" type="button">Back</button>
+          <button id="onboarding-next" class="primary" type="button">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <script src="app.js"></script>
+  </body>
+</html>
