@@ -1,0 +1,35 @@
+{
+  "name": "weather_report",
+  "display_name": "Weather Snapshot",
+  "description": "Fetches current conditions or tomorrow's forecast for any location.",
+  "category": "utility",
+  "handler": {
+    "type": "python",
+    "path": "tools/agent/weather_tool.py"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": "string",
+        "description": "City or region to check (default: Austin)."
+      },
+      "day": {
+        "type": "string",
+        "enum": ["today", "tomorrow"],
+        "default": "today"
+      }
+    },
+    "required": ["location"]
+  },
+  "safety": {
+    "requires_confirmation": false,
+    "rate_limit": "6/min"
+  },
+  "examples": [
+    "What's the weather in Austin today?",
+    "Forecast for tomorrow in Portland.",
+    "Will it rain in London tomorrow?"
+  ],
+  "tags": ["weather", "forecast", "utility"]
+}

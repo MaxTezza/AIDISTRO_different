@@ -66,7 +66,14 @@ class ShellHandler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
         self.send_header("Expires", "0")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.end_headers()
 
     def _user_state_dir(self):
         base = os.path.expanduser("~/.local/state/ai-distro-agent")
@@ -1366,9 +1373,63 @@ class ShellHandler(SimpleHTTPRequestHandler):
                 }
                 self.wfile.write(json.dumps(payload).encode("utf-8"))
                 return
-            self.send_error(404, "unknown api")
+        if self.path == "/api/calendar/data":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            tool = self._agent_tool_path("calendar_router.py")
+            try:
+                proc = subprocess.run([sys.executable, tool, "list", "today"], text=True, capture_output=True)
+                out = proc.stdout.strip()
+                lines = out.split("\n")
+                events = []
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("[calendar status]"):
+                        continue
+                    if "using" in line or "unavailable" in line or not line:
+                        continue
+                    if " - " in line:
+                        time_part, title_part = line.split(" - ", 1)
+                        events.append({"time": time_part.strip(), "title": title_part.strip()})
+                self.wfile.write(json.dumps({"status": "ok", "events": events}).encode("utf-8"))
+            except Exception as e:
+                self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode("utf-8"))
             return
-        super().do_GET()
+            
+        if self.path == "/api/email/data":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            tool = self._agent_tool_path("email_router.py")
+            try:
+                proc = subprocess.run([sys.executable, tool, "summary", "in:inbox newer_than:2d"], text=True, capture_output=True)
+                out = proc.stdout.strip()
+                lines = out.split("\n")
+                emails = []
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("[email status]"):
+                        continue
+                    if "using" in line or "unavailable" in line or not line:
+                        continue
+                    # Match standard text output: From: ... | Subject: ...
+                    if " | Subject: " in line:
+                        try:
+                            sender_part, subject_part = line.split(" | Subject: ", 1)
+                            sender = sender_part.replace("From: ", "").strip()
+                            subject = subject_part.strip()
+                            emails.append({"sender": sender, "subject": subject})
+                        except:
+                            pass
+                self.wfile.write(json.dumps({"status": "ok", "emails": emails}).encode("utf-8"))
+            except Exception as e:
+                self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode("utf-8"))
+            return
+
+        self.send_error(404, "unknown api")
+        return
+    super().do_GET()
 
     def do_POST(self):
         parsed = urlparse(self.path)

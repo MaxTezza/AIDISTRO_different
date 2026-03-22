@@ -6,3 +6,6 @@ pub mod power;
 pub mod memory;
 pub mod tools;
 pub mod ui;
+pub mod privacy;
+pub mod workspace;
+pub mod display;

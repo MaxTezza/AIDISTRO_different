@@ -1,0 +1,17 @@
+stages:
+  - test
+
+rust-check:
+  stage: test
+  image: rust:latest
+  script:
+    - cd src/rust
+    - cargo check
+
+python-lint:
+  stage: test
+  image: python:latest
+  script:
+    - pip install -r requirements.txt
+    - pip install ruff
+    - ruff check .

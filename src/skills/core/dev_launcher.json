@@ -1,0 +1,29 @@
+{
+  "name": "dev_launcher",
+  "display_name": "Developer Launcher",
+  "description": "Opens the preferred code editor or terminal, making it easy to start coding workflows.",
+  "category": "development",
+  "handler": {
+    "type": "rust_builtin",
+    "name": "open_app"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "app": {
+        "type": "string",
+        "description": "Application identifier (e.g., 'code' or 'gnome-terminal')."
+      }
+    },
+    "required": ["app"]
+  },
+  "examples": [
+    "Open VS Code",
+    "Launch terminal",
+    "Start the IDE"
+  ],
+  "tags": ["dev", "editor", "terminal"],
+  "safety": {
+    "requires_confirmation": false
+  }
+}

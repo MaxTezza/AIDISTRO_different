@@ -21,7 +21,7 @@ fi
 
 case "$BROWSER" in
   chromium|chromium-browser|google-chrome|google-chrome-stable)
-    exec "$BROWSER" --kiosk --app="$URL" --start-fullscreen --no-first-run --use-fake-ui-for-media-stream
+    exec "$BROWSER" --kiosk --app="$URL" --start-fullscreen --no-first-run
     ;;
   firefox)
     exec "$BROWSER" --kiosk "$URL"

@@ -1,0 +1,26 @@
+{
+  "name": "remember_note",
+  "display_name": "Quick Note",
+  "description": "Stores a simple note for later reminders or confirmations.",
+  "category": "memory",
+  "handler": {
+    "type": "rust_builtin",
+    "name": "remember"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "note": {
+        "type": "string",
+        "description": "The text you want AI Distro to remember."
+      }
+    },
+    "required": ["note"]
+  },
+  "examples": [
+    "Remember that my printer is downstairs",
+    "Note that I like dark mode on Sundays",
+    "Remember the number 329"
+  ],
+  "tags": ["memory"]
+}

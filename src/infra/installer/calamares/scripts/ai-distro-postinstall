@@ -12,6 +12,33 @@ if command -v systemctl >/dev/null 2>&1; then
   systemctl enable ai-distro-agent.socket || true
 fi
 
+# Ensure the assistant shell auto-starts at login
+autostart_file="/etc/xdg/autostart/ai-distro-shell.desktop"
+cat <<'EOF' >"${autostart_file}"
+[Desktop Entry]
+Type=Application
+Exec=/usr/bin/python3 /usr/lib/ai-distro/ai_distro_shell.py
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=AI Distro Shell
+Comment=Launch the AI Distro assistant shell on login
+EOF
+chmod 644 "${autostart_file}"
+
+# Populate skeleton config for plugin/context defaults
+skel_dir="/etc/skel/.config/ai-distro"
+mkdir -p "${skel_dir}"
+cat <<'EOF' >"${skel_dir}/plugins.json"
+{}
+EOF
+cat <<'EOF' >"${skel_dir}/lite-mode.json"
+{"enabled": false}
+EOF
+cat <<'EOF' >"${skel_dir}/providers.json"
+{"calendar": "local", "email": "gmail", "weather": "default"}
+EOF
+
 # Ensure KDE defaults are present
 if [ -f /etc/xdg/kdeglobals ]; then
   : # already installed via package

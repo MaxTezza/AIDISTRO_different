@@ -82,9 +82,9 @@ AI Distro is an Ubuntu-based, Pop-like KDE distribution built around a local, vo
 - `src/rust/ai-distro-common/Cargo.toml` — Common library crate.
 - `src/rust/ai-distro-common/src/lib.rs` — Shared config types and policy evaluation.
 - `src/rust/ai-distro-core/Cargo.toml` — Core service crate.
-- `src/rust/ai-distro-core/src/main.rs` — Core service stub (logs heartbeat).
+- `src/rust/ai-distro-core/src/main.rs` — Core local IPC service (health/status + note persistence).
 - `src/rust/ai-distro-voice/Cargo.toml` — Voice service crate.
-- `src/rust/ai-distro-voice/src/main.rs` — Voice service stub (logs config + heartbeat).
+- `src/rust/ai-distro-voice/src/main.rs` — Voice bridge (stdin NL -> agent socket) with optional TTS command execution.
 - `src/rust/ai-distro-agent/Cargo.toml` — Agent service crate.
 - `src/rust/ai-distro-agent/src/main.rs` — Agent runtime, IPC server, handlers, confirmations.
 - `src/rust/ai-distro-agent/src/bin/agent_client.rs` — Local client for IPC testing.
@@ -190,6 +190,6 @@ AI Distro is an Ubuntu-based, Pop-like KDE distribution built around a local, vo
 
 ## Known Scaffolds and Gaps
 - Many docs are empty placeholders and need content.
-- The Rust core and voice services are stubs (heartbeat-only).
+- Some infra still has placeholders, but core/voice runtime services are now functional.
 - ISO and rootfs build are wired but still rely on live-build setup and kernel/initrd artifacts.
 - Calamares branding assets (logo/background) are not present.

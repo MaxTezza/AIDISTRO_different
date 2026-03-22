@@ -1,4 +1,4 @@
-use zbus::{Connection, Proxy};
+use zbus::Connection;
 use std::error::Error;
 use log::{info, error};
 use tokio::sync::mpsc;
@@ -38,7 +38,7 @@ impl NervousSystem {
     }
 }
 
-async fn monitor_battery(conn: &Connection, tx: mpsc::Sender<SystemEvent>) -> Result<(), Box<dyn Error>> {
+async fn monitor_battery(_conn: &Connection, _tx: mpsc::Sender<SystemEvent>) -> Result<(), Box<dyn Error>> {
     // In a real Linux environment, we would use a zbus::Proxy to UPower 
     // and listen for PropertyChanged signals.
     // For this implementation, we will use a robust fallback that checks every 2 minutes.

@@ -49,6 +49,18 @@ The assistant should feel like a helpful friend that gets to know the user over 
 - If intent cannot be mapped, respond with a clarification prompt.
 - If policy denies action, explain the reason.
 
+## Context Awareness
+-  Use `remember <text>` to capture explicit facts; they are stored via `ai-distro-agent` and surfaced whenever the user asks “what do you remember.”
+-  Provide a “Recent context” panel in the shell that shows the last saved notes plus a short list of recent actions derived from `AI_DISTRO_AUDIT_LOG`. Mention the source every time the assistant references stored information, keeping transparency high.
+-  Limit context to the most recent 5 notes and 30 days of audit entries; point the voice persona to the new `docs/CONTEXT.md` for details so people understand what is kept and how to clear it.
+-  When an action reuses remembered context (e.g., a follow-up about the printer), remind the user (“You asked me to remember the printer, should I use that location?”) before proceeding.
+-  The help card includes buttons to clear notes or forget tasks without visiting the filesystem; use them to reset context before restarting the assistant.
+-  The help card also exposes a Lite Mode toggle that hits `/api/lite-mode/toggle` so users on older hardware can throttle background services without editing configuration files.
+-  The new Tag Library reads your recent notes and tasks for hints like “photos,” “documents,” or “downloads,” and presents them as collections you can explore by voice or click (say “show my photos” or tap the button). This keeps file browsing tag-based instead of path-based.
+
+## Plain-language error messaging
+-  When the agent returns an error or the IPC layer disconnects, the shell rewrites the response into human-friendly instructions (e.g., “Network hiccup detected” instead of a stack trace). This keeps the interface calm and prevents panic when something goes wrong.
+
 ## Future Enhancements
 - App navigation
 - File actions

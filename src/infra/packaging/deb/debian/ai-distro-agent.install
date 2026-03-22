@@ -6,6 +6,8 @@ build/deb-root/usr/lib/ai-distro/google_calendar_oauth.py usr/lib/ai-distro/
 build/deb-root/usr/lib/ai-distro/google_gmail_oauth.py usr/lib/ai-distro/
 build/deb-root/usr/lib/ai-distro/microsoft_outlook_oauth.py usr/lib/ai-distro/
 build/deb-root/usr/lib/ai-distro/weather_tool.py usr/lib/ai-distro/
+build/deb-root/usr/lib/ai-distro/weather_local_tool.py usr/lib/ai-distro/
+build/deb-root/usr/lib/ai-distro/weather_router.py usr/lib/ai-distro/
 build/deb-root/usr/lib/ai-distro/calendar_tool.py usr/lib/ai-distro/
 build/deb-root/usr/lib/ai-distro/calendar_google_tool.py usr/lib/ai-distro/
 build/deb-root/usr/lib/ai-distro/calendar_microsoft_tool.py usr/lib/ai-distro/

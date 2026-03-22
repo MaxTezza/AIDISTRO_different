@@ -33,7 +33,7 @@ pub fn handle_plan_day_outfit(req: &ActionRequest) -> ActionResponse {
 pub fn handle_weather_get(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("today");
     let tool = std::env::var("AI_DISTRO_WEATHER_TOOL")
-        .unwrap_or_else(|_| "/usr/local/bin/ai-distro-tools/weather_tool.py".to_string());
+        .unwrap_or_else(|_| "/usr/lib/ai-distro/weather_router.py".to_string());
     match Command::new("python3").arg(tool).arg(payload).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();

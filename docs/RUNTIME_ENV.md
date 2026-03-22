@@ -16,8 +16,8 @@
 - `AI_DISTRO_DAY_PLANNER` (default: `/usr/lib/ai-distro/day_planner.py`)
   Helper script for weather + calendar clothing recommendations (`plan_day_outfit`).
 
-- `AI_DISTRO_WEATHER_TOOL` (default: `/usr/lib/ai-distro/weather_tool.py`)
-  Helper script for direct forecast requests (`weather_get`).
+- `AI_DISTRO_WEATHER_TOOL` (default: `/usr/lib/ai-distro/weather_router.py`)
+  Helper script for direct forecast requests (`weather_get`), using live no-key weather first and local fallback when needed.
 
 - `AI_DISTRO_CALENDAR_TOOL` (default: `/usr/lib/ai-distro/calendar_tool.py`)
   Helper script for local calendar add/list requests (`calendar_add_event`, `calendar_list_day`).
@@ -119,3 +119,18 @@
 
 - `AI_DISTRO_CALENDAR_EVENTS_FILE` (default: `~/.config/ai-distro/calendar-events.json`)
   Local calendar events source used by the day planner.
+
+## Lightweight mode helpers
+- `AI_DISTRO_LIGHTWEIGHT_MODE` (default: unset)
+  Set to `1` to keep only the minimal services running (agent, shell, basic brain) and skip optional routers. This mode disables background proactive polls and limits audit writes to the latest 100 lines so the distro stays lean on older hardware.
+- `AI_DISTRO_LIGHTWEIGHT_SKILLS` (default: `core`)
+  Comma-separated list of skill directories to load in lightweight mode; use `core` for the built-in manifests or point to smaller subsets you trust.
+- `AI_DISTRO_LLM_CACHE_TTL_SECS` (default: `300`)
+  Reduce model reload frequency by caching responses in-memory; useful when running on limited RAM. Set to `0` to disable caching completely.
+
+*When the shell help card toggles Lite Mode, it also clears remembered notes and trims the audit log automatically, so the assistant starts fresh in the minimal profile; `AI_DISTRO_LIGHTWEIGHT_STATE` records the current toggle state (`/api/lite-mode`).*
+
+*Use these env vars in tandem with the install doc's “lite” switch so the shell can expose a toggle that launches the assistant without extra services, then lets users add plugins once they’re comfortable.*
+
+- `AI_DISTRO_LIGHTWEIGHT_STATE` (default: `~/.config/ai-distro/lite-mode.json`)
+  File used by the shell help card to persist the Lite mode toggle; the shell exposes `/api/lite-mode` (GET) and `/api/lite-mode/toggle` (POST) so you can switch modes without editing environment configuration manually.
