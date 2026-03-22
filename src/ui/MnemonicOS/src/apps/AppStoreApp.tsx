@@ -47,8 +47,7 @@ export const AppStoreApp: React.FC = () => {
             setResults(checkedPkgs);
         } catch (err) {
             console.error("Failed to search packages:", err);
-            // Fallback for non-apt systems (like testing on mac or pure windows)
-            setResults([{ name: query, description: 'Mock package for testing environment', installed: false }]);
+            setResults([]);
         } finally {
             setLoading(false);
         }
@@ -62,9 +61,7 @@ export const AppStoreApp: React.FC = () => {
             setResults(prev => prev.map(p => p.name === pkg.name ? { ...p, installed: true } : p));
         } catch (err) {
             console.error("Install failed:", err);
-            // If pkexec fails (e.g., Auth cancelled or not found), we can fallback to a simulated delay for demo purposes
-            await new Promise(r => setTimeout(r, 2000));
-            setResults(prev => prev.map(p => p.name === pkg.name ? { ...p, installed: true } : p));
+            // In a real implementation, we could show an error notification here
         } finally {
             setActionState(null);
         }
@@ -77,8 +74,7 @@ export const AppStoreApp: React.FC = () => {
             setResults(prev => prev.map(p => p.name === pkg.name ? { ...p, installed: false } : p));
         } catch (err) {
             console.error("Remove failed:", err);
-            await new Promise(r => setTimeout(r, 1500));
-            setResults(prev => prev.map(p => p.name === pkg.name ? { ...p, installed: false } : p));
+            // Error handling for remove action
         } finally {
             setActionState(null);
         }

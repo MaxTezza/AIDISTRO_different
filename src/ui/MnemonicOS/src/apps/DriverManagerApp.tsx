@@ -50,36 +50,20 @@ export const DriverManagerApp: React.FC = () => {
                         type: 'network',
                         name: net.split(': ')[1] || 'Unknown Network Controller',
                         vendor: net.includes('Intel') ? 'Intel' : (net.includes('Broadcom') ? 'Broadcom' : 'Generic'),
-                        driverStatus: 'missing', // Force a "missing" state for the demo to show the UI
-                        recommendedPackage: 'linux-firmware'
+                        driverStatus: 'installed'
                     });
                 }
 
                 if (parsedDevices.length > 0) {
-                    // Add a fake audio device that needs an update for UI demonstration
-                    parsedDevices.push({
-                        id: 'snd-1',
-                        type: 'audio',
-                        name: 'High Definition Audio Controller',
-                        vendor: 'Realtek',
-                        driverStatus: 'update_available',
-                        recommendedPackage: 'alsa-base'
-                    });
                     setDevices(parsedDevices);
                 } else {
                     throw new Error("No primary devices found via lspci");
                 }
 
             } catch (err) {
-                // Fallback if lspci fails (e.g., testing on Mac/Windows)
-                await new Promise(r => setTimeout(r, 1500));
-                setDevices([
-                    { id: '1', type: 'gpu', name: 'RTX 4090 Advanced', vendor: 'NVIDIA', driverStatus: 'installed' },
-                    { id: '2', type: 'network', name: 'Wi-Fi 6 AX200', vendor: 'Intel', driverStatus: 'missing', recommendedPackage: 'iwlwifi-dkms' },
-                    { id: '3', type: 'audio', name: 'HD Audio Controller', vendor: 'Realtek', driverStatus: 'update_available', recommendedPackage: 'alsa-driver-linux' }
-                ]);
+                console.error("Hardware scan failed:", err);
+                setDevices([]);
             }
-
         } catch (error) {
             console.error("Hardware scan failed", error);
         } finally {
@@ -105,11 +89,6 @@ export const DriverManagerApp: React.FC = () => {
             ));
         } catch (err) {
             console.error(`Failed to ${action} driver for ${device.name}:`, err);
-            // Simulate success for demo purposes if pkexec is cancelled/fails in test env
-            await new Promise(r => setTimeout(r, 2000));
-            setDevices(prev => prev.map(d =>
-                d.id === device.id ? { ...d, driverStatus: 'installed' } : d
-            ));
         } finally {
             setActionState(null);
         }

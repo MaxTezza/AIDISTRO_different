@@ -38,8 +38,6 @@ def execute_intent(text):
     elif 'ip' in text or 'network' in text:
         res = subprocess.run(['ip', 'a'], capture_output=True, text=True)
         return res.stdout[:500] + "..." if len(res.stdout) > 500 else res.stdout
-    elif 'download' in text and 'ubuntu' in text:
-        return "Mock: Simulated downloading Ubuntu ISO into ~/Downloads."
     elif 'lock' in text:
         subprocess.run(['xdg-screensaver', 'lock'], capture_output=True)
         return "Screen locked."
