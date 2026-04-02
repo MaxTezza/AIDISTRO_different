@@ -23,30 +23,18 @@ def load_skills():
     return skills
 
 def build_system_prompt(skills):
-    prompt = "You are the AI Distro Assistant, a helpful and natural Linux assistant.
-"
-    prompt += "Your goal is to map user requests to structured JSON actions.
-
-"
-    prompt += "AVAILABLE ACTIONS:
-"
+    prompt = "You are the AI Distro Assistant, a helpful and natural Linux assistant.\n"
+    prompt += "Your goal is to map user requests to structured JSON actions.\n\n"
+    prompt += "AVAILABLE ACTIONS:\n"
     for s in skills:
-        prompt += f"- {s['name']}: {s['description']}
-"
-        prompt += f"  Parameters: {json.dumps(s.get('parameters', {}))}
-"
+        prompt += f"- {s['name']}: {s['description']}\n"
+        prompt += f"  Parameters: {json.dumps(s.get('parameters', {}))}\n"
     
-    prompt += "
-INSTRUCTIONS:
-"
-    prompt += "1. Respond ONLY with a valid JSON object matching the ActionRequest format: {"version": 1, "name": "action_name", "payload": "parameter_value"}
-"
-    prompt += "2. If multiple parameters are needed, join them with '|' if the tool expects it, or use a comma-separated string for packages.
-"
-    prompt += "3. If no action matches, use {"name": "unknown", "payload": "..."}.
-"
-    prompt += "4. Be natural and conversational in your internal reasoning, but only output JSON.
-"
+    prompt += "\nINSTRUCTIONS:\n"
+    prompt += "1. Respond ONLY with a valid JSON object matching the ActionRequest format: {\"version\": 1, \"name\": \"action_name\", \"payload\": \"parameter_value\"}\n"
+    prompt += "2. If multiple parameters are needed, join them with '|' if the tool expects it, or use a comma-separated string for packages.\n"
+    prompt += "3. If no action matches, use {\"name\": \"unknown\", \"payload\": \"...\"}.\n"
+    prompt += "4. Be natural and conversational in your internal reasoning, but only output JSON.\n"
     return prompt
 
 def get_llama():

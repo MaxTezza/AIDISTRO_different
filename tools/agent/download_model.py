@@ -32,8 +32,7 @@ def download_model():
             size = f.write(data)
             bar.update(size)
 
-    print(f"
-Success! Brain initialized at {MODEL_PATH}")
+    print(f"Success! Brain initialized at {MODEL_PATH}")
 
 if __name__ == "__main__":
     download_model()
