@@ -1,0 +1,8 @@
+{
+  "name": "system_audit",
+  "description": "Perform a deep scan of the Linux system to find bloat, orphan packages, and security risks.",
+  "parameters": {
+    "type": "string",
+    "description": "Scan type: 'bloat', 'packages', 'security', or 'full'"
+  }
+}

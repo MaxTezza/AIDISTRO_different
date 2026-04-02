@@ -447,6 +447,10 @@ def main():
         print(json.dumps(to_action("system_update", "stable")))
         return
 
+    if "audit" in text or "scan system" in text:
+        print(json.dumps(to_action("system_audit", "full")))
+        return
+
     install = parse_install(text)
     if install:
         print(json.dumps(to_action("package_install", install)))
