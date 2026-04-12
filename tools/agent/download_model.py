@@ -13,7 +13,7 @@ def download_model():
         print(f"Model already exists at {MODEL_PATH}")
         return
 
-    print(f"Downloading Local LLM Brain (Llama 3.2 1B)...")
+    print("Downloading Local LLM Brain (Llama 3.2 1B)...")
     print("This only happens once. No API keys required.")
     
     MODEL_DIR.mkdir(parents=True, exist_ok=True)

@@ -4,6 +4,7 @@ import json
 import subprocess
 import tempfile
 import os
+from pathlib import Path
 
 CUSTOM_TOOLS_DIR = Path("tools/agent/custom")
 DYNAMIC_SKILLS_DIR = Path("src/skills/dynamic")
@@ -93,7 +94,7 @@ def main():
             description = data.get("description", "Executing script...")
             save_as_tool = data.get("save_as_tool")
             tool_description = data.get("tool_description", description)
-        except:
+        except Exception:
             code = payload # fallback
     else:
         code = payload

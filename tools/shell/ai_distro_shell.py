@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import sys
 import socket
 import subprocess
 import time
@@ -659,7 +660,8 @@ class ShellHandler(SimpleHTTPRequestHandler):
             with open("/proc/loadavg", "r") as f:
                 load = f.read().split()[0]
                 cpu_usage = int(float(load) * 10) # scaled for 10 cores or just a proxy
-                if cpu_usage > 100: cpu_usage = 99
+                if cpu_usage > 100:
+                    cpu_usage = 99
         except Exception:
             pass
         return {"cpu": cpu_usage, "mem": mem_usage}
@@ -1454,7 +1456,7 @@ class ShellHandler(SimpleHTTPRequestHandler):
                             sender = sender_part.replace("From: ", "").strip()
                             subject = subject_part.strip()
                             emails.append({"sender": sender, "subject": subject})
-                        except:
+                        except Exception:
                             pass
                 self.wfile.write(json.dumps({"status": "ok", "emails": emails}).encode("utf-8"))
             except Exception as e:
@@ -1657,7 +1659,7 @@ class ShellHandler(SimpleHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
-            except:
+            except Exception:
                 self.send_error(400, "invalid push")
             return
         if parsed.path == "/api/providers":

@@ -90,7 +90,7 @@ def listen_loop():
             pass
         except sr.UnknownValueError:
             pass
-        except Exception as e:
+        except Exception:
             time.sleep(1)
 
 if __name__ == "__main__":

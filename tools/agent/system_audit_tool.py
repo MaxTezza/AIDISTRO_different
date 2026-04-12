@@ -10,17 +10,17 @@ def get_bloat():
         cmd = ["find", os.path.expanduser("~"), "-type", "f", "-size", "+100M", "-not", "-path", "*/.git/*", "-not", "-path", "*/node_modules/*"]
         result = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode()
         return result.splitlines()
-    except:
+    except Exception:
         return []
 
 def get_orphan_packages():
     """Find packages that were installed as dependencies but are no longer needed."""
     try:
         # For Pop!_OS / Ubuntu
-        result = subprocess.check_output(["apt-mark", "showauto"], stderr=subprocess.STNULL).decode()
+        subprocess.check_output(["apt-mark", "showauto"], stderr=subprocess.STNULL).decode()
         # This is a bit simplified, but a good start
         return "Check 'sudo apt autoremove --dry-run' for potential cleanup."
-    except:
+    except Exception:
         return "Package manager not supported."
 
 def run_audit(scan_type="full"):

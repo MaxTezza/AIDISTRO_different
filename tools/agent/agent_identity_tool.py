@@ -79,7 +79,7 @@ def main():
             data = json.loads(payload)
             action = data.get("action", "get_email")
             service_name = data.get("service_name")
-        except:
+        except Exception:
             pass
     else:
         action = payload

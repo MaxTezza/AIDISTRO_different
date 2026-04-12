@@ -42,7 +42,7 @@ def main():
         try:
             data = json.loads(query)
             query = data.get("query", query)
-        except:
+        except Exception:
             pass
 
     results = search_duckduckgo(query)

@@ -328,10 +328,8 @@ def clothing_rules(forecast, events):
 
     # Analyze Weather
     if forecast:
-        tmin = forecast["temp_min"]
         tmax = forecast["temp_max"]
         rain = forecast["rain_chance"]
-        location = forecast["location"]
         
         is_hot = tmax >= 30
         is_warm = 20 <= tmax < 30
@@ -341,7 +339,6 @@ def clothing_rules(forecast, events):
         
         rainy = rain >= 40
         slight_rain = 20 <= rain < 40
-        dry = rain < 20
         
         # Base Layer Recommendation
         if is_hot:
@@ -374,7 +371,6 @@ def clothing_rules(forecast, events):
         advice.append("I couldn't check the weather, so take a look outside before you dress.")
     
     # Analyze Calendar
-    dress_codes = {e.get("dress_code", "casual") for e in events}
     outdoor_events = [e for e in events if e.get("outdoor")]
     formal_events = [e for e in events if e.get("dress_code") == "formal"]
     business_events = [e for e in events if e.get("dress_code") == "business"]

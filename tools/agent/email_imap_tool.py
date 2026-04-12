@@ -3,7 +3,6 @@ import datetime as dt
 import email
 import imaplib
 import os
-import re
 import sys
 from email.header import decode_header
 

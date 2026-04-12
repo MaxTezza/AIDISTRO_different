@@ -20,7 +20,7 @@ def load_skills():
             try:
                 with open(p, "r") as f:
                     skills.append(json.load(f))
-            except:
+            except Exception:
                 pass
     return skills
 
@@ -45,7 +45,7 @@ def get_llama():
         if not MODEL_PATH.exists():
             return None
         return Llama(model_path=str(MODEL_PATH), n_ctx=2048, verbose=False)
-    except:
+    except Exception:
         return None
 
 def main():
@@ -59,9 +59,7 @@ def main():
     llm = get_llama()
     if not llm:
         # Fallback to regex if LLM is not ready
-        from intent_parser import main as regex_main
-        # We'll just exit and let the agent call the old parser for now
-        # to ensure we don't break things while downloading.
+        # sys.exit(1) will trigger the caller to use the legacy intent_parser
         sys.exit(1)
 
     system_prompt = build_system_prompt(skills)
@@ -79,7 +77,7 @@ def main():
         # Ensure it is valid JSON
         json.loads(result)
         print(result)
-    except:
+    except Exception:
         print(json.dumps({"name": "unknown", "payload": user_input}))
 
 if __name__ == "__main__":

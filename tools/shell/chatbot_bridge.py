@@ -1,11 +1,9 @@
-import sys
 import time
 import json
 import urllib.request
 import urllib.parse
 import subprocess
 import argparse
-import os
 
 def send_message(token, chat_id, text):
     url = f"https://api.telegram.org/bot{token}/sendMessage"

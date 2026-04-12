@@ -17,12 +17,12 @@ def run_brain(text):
         # Try brain.py first
         result = subprocess.check_output([sys.executable, BRAIN_SCRIPT, text], stderr=subprocess.DEVNULL).decode().strip()
         return json.loads(result)
-    except:
+    except Exception:
         # Fallback to intent_parser.py
         try:
             result = subprocess.check_output([sys.executable, INTENT_SCRIPT, text], stderr=subprocess.DEVNULL).decode().strip()
             return json.loads(result)
-        except:
+        except Exception:
             return {"name": "unknown", "payload": text}
 
 def main():
@@ -37,10 +37,6 @@ def main():
     
     try:
         # Forward to daemon
-        payload = {
-            "task": f"System Runner Execution: {user_input}",
-            "priority": "HIGH"
-        }
         # We wrap the specific action if needed, or just send the whole command
         # For now, let the daemon handle the task description directly as it has its own worker loop
         resp = requests.post(DAEMON_URL, json={"task": user_input})

@@ -4,7 +4,7 @@ import json
 import os
 import re
 import sys
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 def events_path() -> str:

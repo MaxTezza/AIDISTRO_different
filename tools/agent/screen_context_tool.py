@@ -28,7 +28,7 @@ def main():
             try:
                 data = json.loads(action)
                 action = data.get("action", "describe")
-            except:
+            except Exception:
                 pass
 
     path, status = capture_screen()

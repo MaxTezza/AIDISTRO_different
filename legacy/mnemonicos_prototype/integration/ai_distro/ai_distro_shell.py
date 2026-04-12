@@ -1562,7 +1562,7 @@ class ShellHandler(SimpleHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
-            except:
+            except Exception:
                 self.send_error(400, "invalid push")
             return
         if parsed.path == "/api/providers":
