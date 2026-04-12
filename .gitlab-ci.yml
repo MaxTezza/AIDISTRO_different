@@ -12,6 +12,8 @@ python-lint:
   stage: test
   image: python:latest
   script:
+    - apt-get update -qy
+    - apt-get install -y libdbus-1-dev libglib2.0-dev pkg-config libgirepository1.0-dev portaudio19-dev
     - pip install -r requirements.txt
     - pip install ruff
     - ruff check .
