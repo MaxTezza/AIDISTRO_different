@@ -1,0 +1,29 @@
+{
+  "name": "web_research",
+  "display_name": "Web Researcher",
+  "description": "Performs local web research using privacy-preserving search and text extraction. Returns a summary of findings.",
+  "category": "research",
+  "handler": {
+    "type": "python_script",
+    "path": "tools/agent/web_research_tool.py"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The search query or topic to research."
+      }
+    },
+    "required": ["query"]
+  },
+  "examples": [
+    "Research the latest Llama 3.2 benchmarks",
+    "What is the current price of Bitcoin?",
+    "Find a recipe for vegan lasagna"
+  ],
+  "tags": ["web", "search", "research"],
+  "safety": {
+    "requires_confirmation": false
+  }
+}

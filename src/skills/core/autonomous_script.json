@@ -1,0 +1,41 @@
+{
+  "name": "autonomous_script",
+  "display_name": "Autonomous Scripting",
+  "description": "Writes and executes a local Python script to solve a specific problem or automate a task. Requires user confirmation.",
+  "category": "automation",
+  "handler": {
+    "type": "python_script",
+    "path": "tools/agent/autonomous_script_tool.py"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "code": {
+        "type": "string",
+        "description": "The Python code to execute."
+      },
+      "description": {
+        "type": "string",
+        "description": "A brief description of what the script does."
+      },
+      "save_as_tool": {
+        "type": "string",
+        "description": "If provided, saves this script as a permanent tool with this name."
+      },
+      "tool_description": {
+        "type": "string",
+        "description": "The description for the new permanent tool."
+      }
+    },
+    "required": ["code", "description"]
+  },
+  "examples": [
+    "Write a script to convert all JPGs in my folder to PNG",
+    "Calculate the Fibonacci sequence up to 100",
+    "Automate my system backup process"
+  ],
+  "tags": ["script", "python", "automation"],
+  "safety": {
+    "requires_confirmation": true
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "agent_identity",
+  "display_name": "Autonomous Identity",
+  "description": "Manage the agent's autonomous email identity. Used for creating accounts, receiving verification codes, and managing free trials without using the user's personal credentials.",
+  "category": "security",
+  "handler": {
+    "type": "python_script",
+    "path": "tools/agent/agent_identity_tool.py"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["get_email", "read_inbox", "get_verification_code"],
+        "description": "The identity action to perform."
+      },
+      "service_name": {
+        "type": "string",
+        "description": "The name of the service (e.g., 'GitHub', 'OpenAI') for filtering inbox."
+      }
+    },
+    "required": ["action"]
+  },
+  "examples": [
+    "What is my agent email address?",
+    "Check my inbox for a verification code from GitHub",
+    "Read my latest messages"
+  ],
+  "tags": ["identity", "email", "security", "autonomous"],
+  "safety": {
+    "requires_confirmation": false
+  }
+}

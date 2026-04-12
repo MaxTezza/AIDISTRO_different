@@ -8,18 +8,20 @@ from pathlib import Path
 DEFAULT_MODEL_URL = "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf"
 MODEL_DIR = Path(os.path.expanduser("~/.cache/ai-distro/models"))
 MODEL_PATH = MODEL_DIR / "llama-3.2-1b-instruct.gguf"
-SKILLS_DIR = Path(os.environ.get("AI_DISTRO_SKILLS_DIR", "src/skills/core"))
+SKILLS_CORE_DIR = Path(os.environ.get("AI_DISTRO_SKILLS_CORE_DIR", "src/skills/core"))
+SKILLS_DYNAMIC_DIR = Path(os.environ.get("AI_DISTRO_SKILLS_DYNAMIC_DIR", "src/skills/dynamic"))
 
 def load_skills():
     skills = []
-    if not SKILLS_DIR.exists():
-        return skills
-    for p in SKILLS_DIR.glob("*.json"):
-        try:
-            with open(p, "r") as f:
-                skills.append(json.load(f))
-        except:
-            pass
+    for d in [SKILLS_CORE_DIR, SKILLS_DYNAMIC_DIR]:
+        if not d.exists():
+            continue
+        for p in d.glob("*.json"):
+            try:
+                with open(p, "r") as f:
+                    skills.append(json.load(f))
+            except:
+                pass
     return skills
 
 def build_system_prompt(skills):

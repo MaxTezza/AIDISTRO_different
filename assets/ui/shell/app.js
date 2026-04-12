@@ -52,11 +52,116 @@ const globalSearchInput = document.getElementById("global-search-input");
 const globalSearchButton = document.getElementById("global-search-button");
 const globalSearchStatus = document.getElementById("global-search-status");
 const globalSearchResults = document.getElementById("global-search-results");
+const commandBar = document.getElementById("command-bar");
+const commandBarInput = document.getElementById("command-bar-input");
+const commandBarResults = document.getElementById("command-bar-results");
+const widgetCpu = document.getElementById("widget-cpu");
+const widgetMem = document.getElementById("widget-mem");
+const widgetClock = document.getElementById("widget-clock");
 let pluginCatalogData = [];
+let allApps = [];
 
 const apiBase = window.location.origin;
-const APP_VERSION = "2026-02-23.5";
+const APP_VERSION = "2026-04-12.1"; // Updated for Unification
 const ONBOARDING_ENABLED = true;
+
+// --- Command Bar & Apps ---
+
+const toggleCommandBar = (show) => {
+  if (show === undefined) show = commandBar.classList.contains("hidden");
+  commandBar.classList.toggle("hidden", !show);
+  if (show) {
+    commandBarInput.value = "";
+    commandBarInput.focus();
+    renderCommandBarResults([]);
+    loadApps();
+  }
+};
+
+const loadApps = async () => {
+  try {
+    const res = await fetch(`${apiBase}/api/apps`);
+    if (res.ok) {
+      const data = await res.json();
+      allApps = data.apps || [];
+    }
+  } catch (err) {
+    console.error("Failed to load apps", err);
+  }
+};
+
+const renderCommandBarResults = (results) => {
+  commandBarResults.innerHTML = "";
+  if (results.length === 0 && commandBarInput.value.trim() !== "") {
+    commandBarResults.innerHTML = `<div class="p-4 text-center text-muted text-sm">No matches found.</div>`;
+    return;
+  }
+  
+  results.slice(0, 8).forEach((item, index) => {
+    const div = document.createElement("div");
+    div.className = "command-result-item";
+    div.innerHTML = `
+      <span class="command-result-title">${item.name}</span>
+      <span class="command-result-type">${item.type || "App"}</span>
+    `;
+    div.onclick = () => {
+      if (item.type === "Command") {
+        executeCommand(item.action);
+      } else {
+        executeCommand(`open ${item.id || item.name}`);
+      }
+      toggleCommandBar(false);
+    };
+    commandBarResults.appendChild(div);
+  });
+};
+
+commandBarInput.addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  if (!query) {
+    renderCommandBarResults([]);
+    return;
+  }
+  const filtered = allApps.filter(a => 
+    a.name.toLowerCase().includes(query) || 
+    (a.description && a.description.toLowerCase().includes(query))
+  );
+  renderCommandBarResults(filtered);
+});
+
+window.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === " ") {
+    e.preventDefault();
+    toggleCommandBar();
+  }
+  if (e.key === "Escape" && !commandBar.classList.contains("hidden")) {
+    toggleCommandBar(false);
+  }
+});
+
+// --- Widgets ---
+
+const updateWidgets = async () => {
+  try {
+    const res = await fetch(`${apiBase}/api/system/stats`);
+    if (res.ok) {
+      const data = await res.json();
+      if (widgetCpu) widgetCpu.textContent = `CPU: ${data.cpu}%`;
+      if (widgetMem) widgetMem.textContent = `MEM: ${data.mem}%`;
+    }
+  } catch (err) {
+    // ignore
+  }
+  if (widgetClock) {
+    const now = new Date();
+    widgetClock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+};
+
+setInterval(updateWidgets, 5000);
+updateWidgets();
+
+const apiBase = window.location.origin;
 let recognition = null;
 let voiceEnabled = true;
 let voiceListeningWanted = false;

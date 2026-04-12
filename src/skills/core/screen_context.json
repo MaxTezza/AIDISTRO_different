@@ -1,0 +1,30 @@
+{
+  "name": "screen_context",
+  "display_name": "Screen Perceiver",
+  "description": "Captures a screenshot of the current display to understand visual context or extract text from windows. Useful for answering 'what is on my screen?'.",
+  "category": "perception",
+  "handler": {
+    "type": "python_script",
+    "path": "tools/agent/screen_context_tool.py"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["describe", "extract_text"],
+        "description": "Whether to describe the layout or try to extract text."
+      }
+    },
+    "required": ["action"]
+  },
+  "examples": [
+    "What am I looking at?",
+    "Extract the text from this window",
+    "Read the error message on my screen"
+  ],
+  "tags": ["vision", "screen", "perception"],
+  "safety": {
+    "requires_confirmation": true
+  }
+}

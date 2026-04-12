@@ -644,6 +644,26 @@ class ShellHandler(SimpleHTTPRequestHandler):
                 break
         return alerts
 
+    def _get_system_stats(self):
+        # Lightweight /proc based stats for Linux
+        cpu_usage = 0
+        mem_usage = 0
+        try:
+            # Memory
+            with open("/proc/meminfo", "r") as f:
+                lines = f.readlines()
+                total = int(lines[0].split()[1])
+                available = int(lines[2].split()[1])
+                mem_usage = round((1 - (available / total)) * 100)
+            # CPU (very rough approximation)
+            with open("/proc/loadavg", "r") as f:
+                load = f.read().split()[0]
+                cpu_usage = int(float(load) * 10) # scaled for 10 cores or just a proxy
+                if cpu_usage > 100: cpu_usage = 99
+        except Exception:
+            pass
+        return {"cpu": cpu_usage, "mem": mem_usage}
+
     def _load_recent_task_events(self, limit=8):
         log_path = self._audit_log_path()
         if not os.path.exists(log_path):
@@ -1321,6 +1341,20 @@ class ShellHandler(SimpleHTTPRequestHandler):
                         }
                     ).encode("utf-8")
                 )
+                return
+            if self.path == "/api/apps":
+                apps = self._desktop_app_entries()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "ok", "apps": apps}).encode("utf-8"))
+                return
+            if self.path == "/api/system/stats":
+                stats = self._get_system_stats()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(stats).encode("utf-8"))
                 return
             if self.path == "/api/lite-mode":
                 enabled = self._load_lite_mode_state()

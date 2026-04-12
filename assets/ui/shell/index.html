@@ -10,14 +10,26 @@
     <div class="bg-orbit"></div>
     <div class="bg-grain"></div>
 
+    <div id="command-bar" class="command-bar hidden">
+      <div class="command-bar-content">
+        <input id="command-bar-input" type="text" placeholder="Search apps and commands..." autocomplete="off" />
+        <div id="command-bar-results" class="command-bar-results"></div>
+      </div>
+    </div>
+
     <main class="shell">
       <header class="shell-header">
         <div class="brand">
           <div class="brand-mark">AI</div>
           <div>
             <div class="brand-title">AI Distro</div>
-            <div class="brand-sub">Assistant Shell</div>
+            <div class="brand-sub">Mnemonic Edition</div>
           </div>
+        </div>
+        <div class="top-widgets" id="top-widgets">
+          <div class="widget" id="widget-cpu">CPU: --%</div>
+          <div class="widget" id="widget-mem">MEM: --%</div>
+          <div class="widget" id="widget-clock">--:--</div>
         </div>
         <div class="status">
           <span id="status-dot" class="status-dot"></span>

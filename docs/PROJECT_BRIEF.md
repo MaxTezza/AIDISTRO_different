@@ -1,14 +1,17 @@
-# Project Brief
+# Project Brief: AI Distro (Mnemonic Edition)
 
 ## Mission
 
-Build a voice-first personal computer experience that feels easier than Windows for non-technical users.
+Build a voice-first personal computer experience that feels easier than Windows for non-technical users. 
+
+This project unifies the **AI Distro** runtime (engine) with the **Mnemonic OS** interface (shell) into a single, cohesive system.
 
 The product goal is not "a Linux distro for engineers."  
 The goal is "regular people can talk naturally to their machine and it gets things done across apps."
 
 ## Product Feel (Non-Negotiable)
 
+- **Mnemonic Interface**: Persistent top-bar widgets, command-bar launcher (Cmd+Space), and conversational shell.
 - Voice interaction should feel clear, calm, and predictable.
 - The system should always reflect intent before risky actions.
 - The user should never need terminal knowledge for normal tasks.
@@ -17,6 +20,15 @@ The goal is "regular people can talk naturally to their machine and it gets thin
 
 ## Current Milestone Status
 
+- **Unification Complete**: The Mnemonic prototype has been fully absorbed into the AI Distro repository.
+- **Universal Computer Upgrades**: 
+  - **Autonomous Scripting**: Ability to write and run local Python code for complex tasks (automation, data processing).
+  - **Native Web Research**: Privacy-first, local web search and information extraction (Perplexity-style).
+  - **Screen Perception**: Visual context awareness via screen capture.
+- **Mnemonic Shell**: Integrated Vanilla JS UI with:
+  - Command Bar (Cmd+Space) for app launching and command search.
+  - Live system widgets (CPU, Memory, Clock).
+  - Voice-first conversational flow with automatic recovery.
 - Bootable ISO works in VM.
 - Voice parser and Top 20 task gate are implemented.
 - Automated QA exists locally and in GitHub Actions.
@@ -38,6 +50,9 @@ The goal is "regular people can talk naturally to their machine and it gets thin
   - Conversational progress messaging during task execution
   - App Tasks status/history panel backed by audit events
 - Voice actions now include:
+  - `web_research` (Autonomous info retrieval)
+  - `autonomous_script` (Local problem solving)
+  - `screen_context` (Visual reasoning)
   - `weather_get`
   - `calendar_list_day`
   - `calendar_add_event` (confirmation-gated)
@@ -55,18 +70,22 @@ make qa-voice
 
 ## Top Priorities (Next)
 
-1. Package execution safety + privilege UX:
+1. **OCR Integration**: Connect Tesseract to the `screen_context` skill for real text extraction.
+2. **Dynamic Script Library**: Allow the agent to "remember" successful scripts for future use.
+3. **Launcher Polish**: Ensure the Command Bar accurately reflects all installed `.desktop` applications.
+4. **Widget Accuracy**: Harden the `/api/system/stats` path for real-time accuracy across different hardware.
+5. Package execution safety + privilege UX:
    - Route privileged package actions through confirmation + privileged executor path (no raw lock/permission errors).
    - Add preflight summaries before execution (source, resolved package/app id, action impact).
-2. OAuth no-code hardening:
+6. OAuth no-code hardening:
    - Persist provider connect session state safely across shell restarts.
    - Add timeout/retry UX and clearer reconnect flows.
-3. App resolution quality:
+7. App resolution quality:
    - Expand alias catalog and deterministic ranking.
    - Add “app not found” alternative suggestions with plain-language follow-up.
-4. Real-user acceptance suite:
+8. Real-user acceptance suite:
    - Add non-technical task checks (install app, connect account, run daily workflow) and track completion friction.
-5. Release prep:
+9. Release prep:
    - VM smoke + installer flow checks aligned with no-code UX goals.
    - Final copy polish pass for conversational status and failure recovery.
 
@@ -97,7 +116,7 @@ make qa-voice
 
 ## Handoff Notes for New Agents
 
-- Current baseline commit: `05582b1` on `main` (local/remote synced).
+- Current baseline: Unified Mnemonic/Distro codebase (`legacy/` contains old prototype).
 - First commands on new session:
   1. `cd /home/jmt3/AI_Distro`
   2. `git pull --ff-only`
@@ -106,3 +125,4 @@ make qa-voice
 - Do not weaken confirmation policy to boost pass rates.
 - Prefer user-visible reliability and provider-agnostic action surfaces over provider-specific voice commands.
 - Keep changes measurable with automated checks.
+
