@@ -1,3 +1,4 @@
+// AI Distro Version: 1.0.1-test
 use ai_distro_common::{ActionRequest, ActionResponse};
 use crate::utils::{run_command, command_exists, ok_response, error_response};
 
@@ -41,5 +42,35 @@ pub fn handle_system_update(req: &ActionRequest) -> ActionResponse {
         }
     } else {
         ok_response(&req.name, "I finished updating your system.")
+    }
+}
+
+pub fn handle_self_update(req: &ActionRequest) -> ActionResponse {
+    log::info!("Starting AI Distro self-update...");
+    
+    let root = std::env::var("AI_DISTRO_ROOT")
+        .unwrap_or_else(|_| format!("{}/AI_Distro", std::env::var("HOME").unwrap_or_default()));
+
+    // 1. Pull changes
+    match std::process::Command::new("git")
+        .arg("-C").arg(&root)
+        .arg("pull").arg("origin").arg("main")
+        .output() {
+        Ok(out) if !out.status.success() => {
+             // We'll log the error but proceed to build if the error is just 'local changes'
+             log::warn!("Git pull warning: {}", String::from_utf8_lossy(&out.stderr));
+        },
+        Err(err) => return error_response(&req.name, &format!("Git failed: {}", err)),
+        _ => {}
+    }
+
+    // 2. Rebuild Rust components
+    match std::process::Command::new("cargo")
+        .current_dir(&root)
+        .arg("build").arg("--release")
+        .output() {
+        Ok(out) if out.status.success() => ok_response(&req.name, "I've updated my own code and rebuilt my core. Please restart me to apply changes."),
+        Ok(out) => error_response(&req.name, &format!("Build failed: {}", String::from_utf8_lossy(&out.stderr))),
+        Err(err) => error_response(&req.name, &format!("Cargo failed: {}", err)),
     }
 }

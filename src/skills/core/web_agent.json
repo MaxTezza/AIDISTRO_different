@@ -1,0 +1,12 @@
+{
+  "name": "web_agent",
+  "display_name": "Web Presence (Autonomous Browsing)",
+  "description": "Allows the assistant to navigate the web, perform tasks like sign-ups or searches, and understand web content autonomously.",
+  "category": "agent",
+  "actions": [
+    {
+      "name": "web_task",
+      "description": "Executes a high-level goal on a specific website. Payload: 'URL|Goal' (e.g., 'https://service.com|sign up for free trial')."
+    }
+  ]
+}

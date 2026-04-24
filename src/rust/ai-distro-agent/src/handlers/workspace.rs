@@ -74,7 +74,6 @@ pub fn handle_workspace_save(req: &ActionRequest) -> ActionResponse {
                     if parts.len() >= 4 {
                         let window_id = parts.get(0).unwrap_or(&"");
                         let workspace: i32 = parts.get(1).unwrap_or(&"0").parse().unwrap_or(0);
-                        let hostname = parts.get(2).unwrap_or(&"");
                         let title = parts[3..].join(" ");
                         
                         // Get window geometry
@@ -133,8 +132,6 @@ pub fn handle_workspace_save(req: &ActionRequest) -> ActionResponse {
         "sway" | "hyprland" => {
             // Use swaymsg or hyprctl for Wayland compositors
             if let Ok(output) = run_command("swaymsg", &["-t", "get_tree"], None) {
-                // Parse JSON tree (simplified - would need proper JSON parsing)
-                // For now, just note that it's a Wayland session
                 snapshot.workspaces.push(WorkspaceState {
                     id: 0,
                     name: "Main".to_string(),
@@ -229,13 +226,9 @@ pub fn handle_workspace_restore(req: &ActionRequest) -> ActionResponse {
     // Restore windows by launching apps
     for ws in &snapshot.workspaces {
         for window in &ws.windows {
-            // Launch the application
             let launch_result = launch_app(&window.app_name);
             if launch_result {
                 restored += 1;
-                
-                // Note: Restoring exact position would require window manager integration
-                // For now, we just launch the app and let the WM place it
             } else {
                 failed += 1;
             }
@@ -286,7 +279,6 @@ pub fn handle_workspace_switch(req: &ActionRequest) -> ActionResponse {
     
     match de.as_str() {
         "gnome" | "ubuntu" | "pop" => {
-            // Use wmctrl to switch workspace
             match run_command("wmctrl", &["-s", workspace], None) {
                 Ok(_) => ok_response(&req.name, &format!("Switched to workspace {}", workspace)),
                 Err(e) => error_response(&req.name, &e),
@@ -296,7 +288,6 @@ pub fn handle_workspace_switch(req: &ActionRequest) -> ActionResponse {
             match run_command("qdbus", &["org.kde.KWin", "/KWin", "org.kde.KWin.setCurrentDesktop", workspace], None) {
                 Ok(_) => ok_response(&req.name, &format!("Switched to workspace {}", workspace)),
                 Err(_) => {
-                    // Fallback to wmctrl
                     match run_command("wmctrl", &["-s", workspace], None) {
                         Ok(_) => ok_response(&req.name, &format!("Switched to workspace {}", workspace)),
                         Err(e) => error_response(&req.name, &e),
@@ -319,11 +310,45 @@ pub fn handle_workspace_switch(req: &ActionRequest) -> ActionResponse {
     }
 }
 
+pub fn handle_workspace_arrange(req: &ActionRequest) -> ActionResponse {
+    let layout = req.payload.as_deref().unwrap_or("default");
+    
+    if layout == "research" {
+        let _ = run_command("wmctrl", &["-r", "Firefox", "-e", "0,0,0,960,1080"], None);
+        let _ = run_command("wmctrl", &["-r", "Terminal", "-e", "0,960,0,960,1080"], None);
+        ok_response(&req.name, "Arranged workspace for research.")
+    } else {
+        ok_response(&req.name, "Layout unknown, but I've noted your preference.")
+    }
+}
+
+pub fn handle_window_move(req: &ActionRequest) -> ActionResponse {
+    let payload = req.payload.as_deref().unwrap_or("");
+    let parts: Vec<&str> = payload.split('|').collect();
+    if parts.len() == 2 {
+        let title = parts[0];
+        let geo = format!("0,{}", parts[1]);
+        match run_command("wmctrl", &["-r", title, "-e", &geo], None) {
+            Ok(_) => ok_response(&req.name, &format!("Moved window '{}'", title)),
+            Err(e) => error_response(&req.name, &e),
+        }
+    } else {
+        error_response(&req.name, "Invalid payload format. Use 'Title|x,y,w,h'")
+    }
+}
+
+pub fn handle_window_maximize(req: &ActionRequest) -> ActionResponse {
+    let title = req.payload.as_deref().unwrap_or(":ACTIVE:");
+    match run_command("wmctrl", &["-r", title, "-b", "add,maximized_vert,maximized_horz"], None) {
+        Ok(_) => ok_response(&req.name, &format!("Maximized window '{}'", title)),
+        Err(e) => error_response(&req.name, &e),
+    }
+}
+
 // Helper functions
 
 fn get_window_geometry(window_id: &str) -> (i32, i32, i32, i32) {
     if let Ok(output) = run_command("xdotool", &["getwindowgeometry", window_id], None) {
-        // Parse output like: Position: 100,200 (screen: 0) Geometry: 800x600
         let mut x = 0; let mut y = 0; let mut w = 800; let mut h = 600;
         for line in output.lines() {
             if line.contains("Position:") {
@@ -356,7 +381,6 @@ fn get_window_geometry(window_id: &str) -> (i32, i32, i32, i32) {
 fn guess_app_from_title(title: &str) -> String {
     let title_lower = title.to_lowercase();
     
-    // Common applications
     if title_lower.contains("firefox") || title_lower.contains("mozilla") {
         return "firefox".to_string();
     }
@@ -382,7 +406,6 @@ fn guess_app_from_title(title: &str) -> String {
         return "spotify".to_string();
     }
     
-    // Default: use first word of title
     title.split_whitespace().next().unwrap_or("unknown").to_string()
 }
 

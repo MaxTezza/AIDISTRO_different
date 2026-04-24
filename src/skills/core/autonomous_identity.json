@@ -1,0 +1,16 @@
+{
+  "name": "autonomous_identity",
+  "display_name": "Autonomous Identity",
+  "description": "Allows the assistant to use its own dedicated local email identity to manage accounts or trials.",
+  "category": "agent",
+  "actions": [
+    {
+      "name": "get_autonomous_address",
+      "description": "Returns the assistant's own dedicated email address."
+    },
+    {
+      "name": "poll_autonomous_mail",
+      "description": "Polls the assistant's dedicated mailbox for new messages (e.g., verification codes)."
+    }
+  ]
+}

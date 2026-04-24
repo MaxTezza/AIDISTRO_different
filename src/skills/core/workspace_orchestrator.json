@@ -1,0 +1,20 @@
+{
+  "name": "workspace_orchestrator",
+  "display_name": "Workspace Orchestrator",
+  "description": "Allows the assistant to actively move, resize, and arrange windows into functional layouts.",
+  "category": "system",
+  "actions": [
+    {
+      "name": "workspace_arrange",
+      "description": "Arranges windows into a specific layout (e.g., 'research' for browser/notes split)."
+    },
+    {
+      "name": "window_move",
+      "description": "Moves a specific window to coordinates. Payload: 'Title|x,y,w,h'"
+    },
+    {
+      "name": "window_maximize",
+      "description": "Maximizes the specified window or the currently active one."
+    }
+  ]
+}

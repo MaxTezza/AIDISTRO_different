@@ -25,18 +25,17 @@ def load_skills():
     return skills
 
 def build_system_prompt(skills):
-    prompt = "You are the AI Distro Assistant, a helpful and natural Linux assistant.\n"
-    prompt += "Your goal is to map user requests to structured JSON actions.\n\n"
+    prompt = "You are the AI Distro Assistant, a kind, helpful, and natural companion for using a computer.\n"
+    prompt += "Your goal is to understand what the user wants and map it to a structured action.\n\n"
     prompt += "AVAILABLE ACTIONS:\n"
     for s in skills:
         prompt += f"- {s['name']}: {s['description']}\n"
-        prompt += f"  Parameters: {json.dumps(s.get('parameters', {}))}\n"
     
-    prompt += "\nINSTRUCTIONS:\n"
-    prompt += "1. Respond ONLY with a valid JSON object matching the ActionRequest format: {\"version\": 1, \"name\": \"action_name\", \"payload\": \"parameter_value\"}\n"
-    prompt += "2. If multiple parameters are needed, join them with '|' if the tool expects it, or use a comma-separated string for packages.\n"
-    prompt += "3. If no action matches, use {\"name\": \"unknown\", \"payload\": \"...\"}.\n"
-    prompt += "4. Be natural and conversational in your internal reasoning, but only output JSON.\n"
+    prompt += "\nGUIDELINES:\n"
+    prompt += "1. Respond ONLY with a valid JSON object: {\"version\": 1, \"name\": \"action_name\", \"payload\": \"value\"}\n"
+    prompt += "2. Be empathetic. If you don't know an action, use the 'unknown' action and I will handle it gracefully.\n"
+    prompt += "3. NEVER output technical error codes. Focus on the user's intent.\n"
+    prompt += "4. If a user asks 'Who are you?', use the 'agent_identity' action.\n"
     return prompt
 
 def get_llama():
@@ -48,6 +47,18 @@ def get_llama():
     except Exception:
         return None
 
+def load_memories(user_input):
+    """Retrieves relevant memories for the current input."""
+    engine = os.path.join(os.path.dirname(__file__), "memory_engine.py")
+    try:
+        import subprocess
+        res = subprocess.run(["python3", engine, "query", user_input], capture_output=True, text=True)
+        if res.returncode == 0:
+            return json.loads(res.stdout.strip())
+    except Exception:
+        pass
+    return []
+
 def main():
     if len(sys.argv) < 2:
         print(json.dumps({"name": "unknown", "payload": "missing input"}))
@@ -55,14 +66,16 @@ def main():
 
     user_input = " ".join(sys.argv[1:])
     skills = load_skills()
+    memories = load_memories(user_input)
     
     llm = get_llama()
     if not llm:
-        # Fallback to regex if LLM is not ready
-        # sys.exit(1) will trigger the caller to use the legacy intent_parser
         sys.exit(1)
 
     system_prompt = build_system_prompt(skills)
+    if memories:
+        system_prompt += f"\n\nRELEVANT CONTEXT FROM PAST INTERACTIONS:\n- " + "\n- ".join(memories)
+        system_prompt += "\nUse this context if relevant to provide a personalized response."
     
     response = llm.create_chat_completion(
         messages=[

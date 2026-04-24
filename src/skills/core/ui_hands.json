@@ -1,0 +1,20 @@
+{
+  "name": "ui_hands",
+  "display_name": "UI Hands (Automation)",
+  "description": "Allows the assistant to reach into applications to click buttons, type text, and execute shortcuts.",
+  "category": "system",
+  "actions": [
+    {
+      "name": "ui_click",
+      "description": "Clicks a UI element by name or coordinates (e.g., 'Reply' or '100,200')."
+    },
+    {
+      "name": "ui_type",
+      "description": "Types text into the active field or a specific window. Format: 'WindowName|Text' or just 'Text'."
+    },
+    {
+      "name": "ui_shortcut",
+      "description": "Executes a keyboard shortcut (e.g., 'ctrl+c', 'alt+f4')."
+    }
+  ]
+}

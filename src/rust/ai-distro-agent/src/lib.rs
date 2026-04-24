@@ -48,6 +48,7 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
     
     // System management
     map.insert("system_update", handlers::system::handle_system_update as Handler);
+    map.insert("self_update", handlers::system::handle_self_update as Handler);
     
     // Media controls
     map.insert("set_volume", handlers::media::handle_set_volume as Handler);
@@ -72,6 +73,7 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
     map.insert("open_url", handlers::ui::handle_open_url as Handler);
     map.insert("open_app", handlers::ui::handle_open_app as Handler);
     map.insert("list_files", handlers::ui::handle_list_files as Handler);
+    map.insert("screen_context", handlers::ui::handle_screen_context as Handler);
     
     // External tools (Python-based)
     map.insert("weather_get", handlers::tools::handle_weather_get as Handler);
@@ -92,6 +94,14 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
     map.insert("workspace_restore", handlers::workspace::handle_workspace_restore as Handler);
     map.insert("workspace_list", handlers::workspace::handle_workspace_list as Handler);
     map.insert("workspace_switch", handlers::workspace::handle_workspace_switch as Handler);
+    map.insert("workspace_arrange", handlers::workspace::handle_workspace_arrange as Handler);
+    map.insert("window_move", handlers::workspace::handle_window_move as Handler);
+    map.insert("window_maximize", handlers::workspace::handle_window_maximize as Handler);
+    
+    // UI Hands (Automation)
+    map.insert("ui_click", handlers::hands::handle_ui_click as Handler);
+    map.insert("ui_type", handlers::hands::handle_ui_type as Handler);
+    map.insert("ui_shortcut", handlers::hands::handle_ui_shortcut as Handler);
     
     // Display and theme management
     map.insert("set_dark_mode", handlers::display::handle_set_dark_mode as Handler);
@@ -102,13 +112,42 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
     map.insert("set_night_light", handlers::display::handle_set_night_light as Handler);
     map.insert("apply_scheduled_theme", handlers::display::handle_apply_scheduled_theme as Handler);
     
+    // Skill management
+    map.insert("skill_install", handlers::skill::handle_skill_install as Handler);
+    map.insert("skill_list", handlers::skill::handle_skill_list as Handler);
+    
 
     
     // Core built-ins
     map.insert("ping", handle_ping as Handler);
     map.insert("get_capabilities", handle_get_capabilities as Handler);
+    map.insert("proactive_suggestion", handle_proactive_suggestion as Handler);
+    
+    // Identity and Email
+    map.insert("get_autonomous_address", handlers::tools::handle_get_autonomous_address as Handler);
+    map.insert("poll_autonomous_mail", handlers::tools::handle_poll_autonomous_mail as Handler);
+    map.insert("web_task", handlers::tools::handle_web_task as Handler);
     
     map
+}
+
+pub fn handle_proactive_suggestion(req: &ActionRequest) -> ActionResponse {
+    let payload = req.payload.as_deref().unwrap_or("{}");
+    // Parse the payload to extract the message
+    let msg = if let Ok(val) = serde_json::from_str::<serde_json::Value>(payload) {
+        val["message"].as_str().unwrap_or("Insight detected").to_string()
+    } else {
+        "Insight detected".to_string()
+    };
+
+    ActionResponse {
+        version: 1,
+        action: req.name.clone(),
+        status: "ok".to_string(),
+        message: Some(msg),
+        capabilities: None,
+        confirmation_id: None,
+    }
 }
 
 pub fn handle_ping(req: &ActionRequest) -> ActionResponse {
@@ -157,6 +196,17 @@ pub fn handle_request(
     });
     let _ = audit::append_audit_record(&audit_log, &mut state, event);
     audit::persist_audit_chain_state(&audit_state, &state);
+
+    // Habit Learning (Bayesian)
+    if response.status == "ok" {
+        let curator_path = std::env::var("AI_DISTRO_CURATOR")
+            .unwrap_or_else(|_| "tools/agent/curator.py".to_string());
+        let _ = std::process::Command::new("python3")
+            .arg(&curator_path)
+            .arg("log_habit")
+            .arg(&request.name)
+            .spawn();
+    }
 
     response
 }

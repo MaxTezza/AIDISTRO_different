@@ -61,10 +61,10 @@ impl Default for VoiceConfig {
                 log_file: None,
             },
             asr_model: "default-asr".to_string(),
-            tts_model: "default-tts".to_string(),
+            tts_model: format!("{}/.cache/ai-distro/piper/en_US-amy-medium.onnx", std::env::var("HOME").unwrap_or_default()),
             audio_device: "default".to_string(),
             asr_binary: "/usr/bin/vosk-server".to_string(),
-            tts_binary: "/usr/bin/piper".to_string(),
+            tts_binary: format!("{}/.cache/ai-distro/piper/piper/piper", std::env::var("HOME").unwrap_or_default()),
         }
     }
 }

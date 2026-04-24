@@ -210,3 +210,48 @@ pub fn handle_email_draft(req: &ActionRequest) -> ActionResponse {
         Err(err) => error_response(&req.name, &format!("gmail tool launch failed: {err}")),
     }
 }
+
+pub fn handle_get_autonomous_address(req: &ActionRequest) -> ActionResponse {
+    let tool = std::env::var("AI_DISTRO_IDENTITY_TOOL")
+        .unwrap_or_else(|_| "tools/agent/autonomous_identity_tool.py".to_string());
+    match Command::new("python3").arg(tool).arg("get_address").output() {
+        Ok(out) if out.status.success() => {
+            let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            ok_response(&req.name, &msg)
+        }
+        _ => error_response(&req.name, "failed to get autonomous address"),
+    }
+}
+
+pub fn handle_poll_autonomous_mail(req: &ActionRequest) -> ActionResponse {
+    let tool = std::env::var("AI_DISTRO_IDENTITY_TOOL")
+        .unwrap_or_else(|_| "tools/agent/autonomous_identity_tool.py".to_string());
+    match Command::new("python3").arg(tool).arg("poll").output() {
+        Ok(out) if out.status.success() => {
+            let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            ok_response(&req.name, &msg)
+        }
+        _ => error_response(&req.name, "failed to poll autonomous mail"),
+    }
+}
+
+pub fn handle_web_task(req: &ActionRequest) -> ActionResponse {
+    let payload = req.payload.as_deref().unwrap_or("");
+    // format: "URL|Goal"
+    let parts: Vec<&str> = payload.split('|').collect();
+    if parts.len() < 2 {
+        return error_response(&req.name, "Invalid payload. Use 'URL|Goal'");
+    }
+    let url = parts[0];
+    let goal = parts[1..].join("|");
+
+    let tool = std::env::var("AI_DISTRO_WEB_NAVIGATOR")
+        .unwrap_or_else(|_| "tools/agent/web_navigator.py".to_string());
+    match Command::new("python3").arg(tool).arg(url).arg(goal).output() {
+        Ok(out) if out.status.success() => {
+            let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            ok_response(&req.name, &msg)
+        }
+        _ => error_response(&req.name, "failed to execute web task"),
+    }
+}

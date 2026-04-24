@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Distro Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #00ffcc;
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        #status-bar {
+            width: 80%;
+            padding: 15px;
+            background-color: #333;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            border-left: 10px solid #00ffcc;
+        }
+        #cards-container {
+            width: 90%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .card {
+            background-color: #2c2c2c;
+            border-radius: 15px;
+            padding: 25px;
+            width: 400px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            border-bottom: 5px solid #00ffcc;
+            animation: fadeIn 0.5s ease-out;
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #00ffcc;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+        .card p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+        }
+        .insight {
+            border-bottom-color: #ffcc00;
+            background: linear-gradient(145deg, #2c2c2c, #3d3d2c);
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+            animation: pulse-border 2s infinite;
+        }
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 15px rgba(255, 204, 0, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(255, 204, 0, 0.6); }
+            100% { box-shadow: 0 0 15px rgba(255, 204, 0, 0.3); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .listening { border-left-color: #ff0055; animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Computer</h1>
+    <div id="status-bar">System Ready</div>
+    
+    <div id="cards-container">
+        <!-- Cards will be injected here -->
+    </div>
+
+    <script>
+        const socket = new WebSocket('ws://' + window.location.hostname + ':5001');
+        const statusBar = document.getElementById('status-bar');
+        const container = document.getElementById('cards-container');
+
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            console.log("Received event:", data);
+            
+            if (data.type === 'status') {
+                statusBar.innerText = data.message;
+                if (data.message === 'Listening...') {
+                    statusBar.classList.add('listening');
+                } else {
+                    statusBar.classList.remove('listening');
+                }
+            } else if (data.type === 'info') {
+                // Add a new info card
+                const card = document.createElement('div');
+                card.className = 'card';
+                if (data.title === 'proactive_suggestion') {
+                    card.classList.add('insight');
+                }
+                card.innerHTML = `
+                    <h2>${data.title === 'proactive_suggestion' ? 'Assistant Insight' : data.title || 'Notification'}</h2>
+                    <p>${data.message}</p>
+                `;
+                // Keep only the last 3 cards
+                if (container.children.length >= 3) {
+                    container.removeChild(container.lastChild);
+                }
+                container.insertBefore(card, container.firstChild);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,20 +1,144 @@
 stages:
-  - test
+  - lint
+  - build
+  - release
 
-rust-check:
-  stage: test
-  image: rust:latest
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  RUST_VERSION: "1.75"
+
+.rust-cache:
+  cache:
+    key: rust-$CI_COMMIT_REF_SLUG
+    paths:
+      - .cargo/
+      - src/rust/target/
+
+lint-rust:
+  stage: lint
+  image: rust:$RUST_VERSION
+  extends: .rust-cache
   script:
     - cd src/rust
-    - cargo check
+    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo fmt --check
 
-python-lint:
-  stage: test
-  image: python:latest
+lint-python:
+  stage: lint
+  image: python:3.11
   script:
     - pip install ruff
     - ruff check .
-    - apt-get update -qy
-    - apt-get install -y build-essential ninja-build meson cmake pkg-config libdbus-1-dev libglib2.0-dev libdbus-glib-1-dev libgirepository1.0-dev libgirepository-2.0-dev gobject-introspection libcairo2-dev portaudio19-dev
     - pip install --upgrade pip setuptools wheel
     - pip install -r requirements.txt
+
+test-rust:
+  stage: lint
+  image: rust:$RUST_VERSION
+  extends: .rust-cache
+  script:
+    - cd src/rust
+    - cargo test --all
+
+build-rust:
+  stage: build
+  image: rust:$RUST_VERSION
+  extends: .rust-cache
+  artifacts:
+    paths:
+      - build/deb-root/usr/bin/
+    expire_in: 1 week
+  script:
+    - cd src/rust
+    - cargo build --release --all
+    - mkdir -p $CI_PROJECT_DIR/build/deb-root/usr/bin
+    - cp target/release/ai-distro-agent $CI_PROJECT_DIR/build/deb-root/usr/bin/
+    - cp target/release/ai-distro-core $CI_PROJECT_DIR/build/deb-root/usr/bin/ || true
+    - cp target/release/ai-distro-voice $CI_PROJECT_DIR/build/deb-root/usr/bin/ || true
+
+build-deb:
+  stage: build
+  image: debian:bookworm
+  needs:
+    - build-rust
+  artifacts:
+    paths:
+      - release/*.deb
+    expire_in: 1 week
+  script:
+    - apt-get update && apt-get install -y dpkg-dev fakeroot
+    - mkdir -p release
+    - ./tools/build/package-deb.sh || echo "Deb packaging scaffold"
+    - cp build/*.deb release/ 2>/dev/null || echo "No deb files yet"
+
+build-docker:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    - |
+      if [ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]; then
+        docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE:latest
+        docker push $CI_REGISTRY_IMAGE:latest
+      fi
+
+build-iso:
+  stage: build
+  image: debian:bookworm
+  needs:
+    - build-rust
+  rules:
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    paths:
+      - release/*.iso
+    expire_in: 1 month
+  before_script:
+    - apt-get update
+    - apt-get install -y live-build debootstrap squashfs-tools genisoimage xorriso grub-pc-bin grub-efi-amd64-bin grub-efi-ia32-bin
+  script:
+    - make deps || true
+    - make rootfs || true
+    - make iso-assemble || true
+    - mkdir -p release
+    - |
+      if [ -f "build/iso/ai-distro.iso" ]; then
+        mv build/iso/ai-distro.iso release/AI-Distro-${CI_COMMIT_TAG}.iso
+      elif [ -f "build/AI-Distro.iso" ]; then
+        mv build/AI-Distro.iso release/AI-Distro-${CI_COMMIT_TAG}.iso
+      else
+        echo "ISO not built - scaffolding mode"
+        touch release/iso-placeholder.txt
+      fi
+
+release-assets:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - build-rust
+    - build-iso
+  script:
+    - echo "Creating release for $CI_COMMIT_TAG"
+  release:
+    name: "AI Distro $CI_COMMIT_TAG"
+    tag_name: $CI_COMMIT_TAG
+    description: |
+      ## AI Distro $CI_COMMIT_TAG
+      
+      ### Downloads
+      - Pre-built ISO for USB boot (coming soon)
+      - Docker image: `$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG`
+      
+      ### What's New
+      See CHANGELOG.md for details.
+    assets:
+      links:
+        - name: "Docker Image"
+          url: "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"
+          link_type: image
