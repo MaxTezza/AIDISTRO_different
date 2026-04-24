@@ -1,0 +1,12 @@
+{
+  "name": "semantic_launcher",
+  "display_name": "Semantic App Launcher",
+  "description": "Finds and launches applications based on a description of what they do (e.g., 'I need to edit a photo').",
+  "category": "ui",
+  "actions": [
+    {
+      "name": "launch_app_semantic",
+      "description": "Searches for an application by description and launches it. Payload: 'A description of the app or task'."
+    }
+  ]
+}

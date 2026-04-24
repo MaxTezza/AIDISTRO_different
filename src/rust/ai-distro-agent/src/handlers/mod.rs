@@ -1,5 +1,6 @@
 pub mod display;
 pub mod hands;
+pub mod hardware;
 pub mod media;
 pub mod memory;
 pub mod network;
@@ -7,6 +8,7 @@ pub mod package;
 pub mod power;
 pub mod privacy;
 pub mod skill;
+pub mod store;
 pub mod system;
 pub mod tools;
 pub mod ui;

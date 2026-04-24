@@ -60,6 +60,16 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
     map.insert("network_bluetooth_on", handlers::network::handle_bluetooth_on as Handler);
     map.insert("network_bluetooth_off", handlers::network::handle_bluetooth_off as Handler);
     
+    // Hardware control
+    map.insert("wifi_scan", handlers::hardware::handle_wifi_scan as Handler);
+    map.insert("wifi_connect", handlers::hardware::handle_wifi_connect as Handler);
+    map.insert("bluetooth_scan", handlers::hardware::handle_bluetooth_scan as Handler);
+    map.insert("bluetooth_pair", handlers::hardware::handle_bluetooth_pair as Handler);
+    
+    // Universal App Store
+    map.insert("store_search", handlers::store::handle_store_search as Handler);
+    map.insert("store_install", handlers::store::handle_store_install as Handler);
+    
     // Power management
     map.insert("power_reboot", handlers::power::handle_power_reboot as Handler);
     map.insert("power_shutdown", handlers::power::handle_power_shutdown as Handler);
@@ -74,6 +84,7 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
     map.insert("open_app", handlers::ui::handle_open_app as Handler);
     map.insert("list_files", handlers::ui::handle_list_files as Handler);
     map.insert("screen_context", handlers::ui::handle_screen_context as Handler);
+    map.insert("launch_app_semantic", handlers::ui::handle_launch_app_semantic as Handler);
     
     // External tools (Python-based)
     map.insert("weather_get", handlers::tools::handle_weather_get as Handler);

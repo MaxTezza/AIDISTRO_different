@@ -1,0 +1,24 @@
+{
+  "name": "hardware_control",
+  "display_name": "Hardware & Network Control",
+  "description": "Allows the assistant to manage Wi-Fi, Bluetooth, and other physical hardware devices.",
+  "category": "system",
+  "actions": [
+    {
+      "name": "wifi_scan",
+      "description": "Scans for available Wi-Fi networks."
+    },
+    {
+      "name": "wifi_connect",
+      "description": "Connects to a Wi-Fi network. Payload: 'SSID|Password'"
+    },
+    {
+      "name": "bluetooth_scan",
+      "description": "Lists known Bluetooth devices."
+    },
+    {
+      "name": "bluetooth_pair",
+      "description": "Pairs with a Bluetooth device by MAC address."
+    }
+  ]
+}

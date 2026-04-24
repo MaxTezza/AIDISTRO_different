@@ -89,6 +89,23 @@ pub fn handle_screen_context(req: &ActionRequest) -> ActionResponse {
     }
 }
 
+pub fn handle_launch_app_semantic(req: &ActionRequest) -> ActionResponse {
+    let Some(query) = req.payload.as_deref() else {
+        return error_response(&req.name, "missing application search query");
+    };
+
+    let script = std::env::var("AI_DISTRO_SEMANTIC_LAUNCHER")
+        .unwrap_or_else(|_| "tools/agent/semantic_launcher.py".to_string());
+
+    match Command::new("python3").arg(&script).arg("launch").arg(query).output() {
+        Ok(out) if out.status.success() => {
+            let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            ok_response(&req.name, if msg.is_empty() { "I found a match and launched it." } else { &msg })
+        }
+        _ => error_response(&req.name, "I couldn't find an application that matches your description."),
+    }
+}
+
 fn is_valid_app_name(app: &str) -> bool {
     if app.is_empty() || app.len() > 96 {
         return false;

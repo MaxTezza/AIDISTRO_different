@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use colored::*;
 use std::process::Command;
-use sysinfo::{System, ProcessExt, SystemExt};
+use sysinfo::System;
 
 #[derive(Parser)]
 #[command(name = "ai-distro")]
@@ -80,14 +80,16 @@ fn main() {
             }
             
             // Check for Models
-            let model_path = std::env::home_dir().unwrap().join(".cache/ai-distro/models/llama-3.2-1b-instruct.gguf");
+            let home = dirs::home_dir().unwrap_or_default();
+            let model_path = home.join(".cache/ai-distro/models/llama-3.2-1b-instruct.gguf");
             let model_status = if model_path.exists() { "LOADED".green() } else { "MISSING".red() };
             println!("\n{} {:<18} [{}]", "🧠", "Brain Model", model_status);
             
             println!("{}\n", "=".repeat(30));
         }
         Commands::Setup => {
-            let wizard_path = std::env::home_dir().unwrap().join("AI_Distro/tools/agent/setup_wizard.py");
+            let home = dirs::home_dir().unwrap_or_default();
+            let wizard_path = home.join("AI_Distro/tools/agent/setup_wizard.py");
             let _ = Command::new("python3").arg(wizard_path).status();
         }
     }

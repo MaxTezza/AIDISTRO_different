@@ -1,0 +1,16 @@
+{
+  "name": "universal_store",
+  "display_name": "Universal App Store",
+  "description": "Allows the assistant to search for and install regular Linux applications (Flatpak/APT).",
+  "category": "system",
+  "actions": [
+    {
+      "name": "store_search",
+      "description": "Searches for an application to install. Payload: 'app name or keyword'."
+    },
+    {
+      "name": "store_install",
+      "description": "Installs an application by ID or name. Payload: 'application_id' (e.g., 'org.mozilla.firefox')."
+    }
+  ]
+}
