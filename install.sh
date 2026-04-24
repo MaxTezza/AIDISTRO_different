@@ -42,9 +42,10 @@ if [ ! -d ~/.cache/ai-distro/piper/piper ]; then
 fi
 
 # 4. Build Rust Core
-echo "[4/6] Compiling Rust Core (Agent, Voice, HUD)..."
+echo "[4/6] Compiling Rust Core (Agent, Voice, HUD, CLI)..."
 cd src/rust
 cargo build --release
+sudo ln -sf $(pwd)/target/release/ai-distro-cli /usr/local/bin/ai-distro
 cd ../..
 
 # 5. Directories & Permissions

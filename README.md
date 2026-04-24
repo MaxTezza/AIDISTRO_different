@@ -1,177 +1,57 @@
-# AI Distro
+# AI Distro: The Revolutionary Operating System Partner
 
-> **Voice-first, agentic Linux with cryptographic audit trails.**
+Welcome to the future of computing. AI Distro is not an assistant; it is a **sentient operating system partner** designed to bridge the gap between high-level human intent and low-level machine execution. 
 
-Your data never leaves your machine. Every action is logged in a tamper-proof SHA-256 hash chain. Perfect for healthcare, legal, and regulated industries where cloud AI cannot be used.
+Whether you are a **Senior Developer** orchestrating complex workflows or a **Grandma** looking for a natural way to use a computer, AI Distro is built for you.
 
-## Download
+---
 
-> **[Download Latest ISO](https://gitlab.com/jmt3/ai-distro/-/releases)** (coming soon)
+## 🌟 The Core Pillars
 
-Flash to USB with [BalenaEtcher](https://etcher.balena.io/) and boot. No terminal commands required.
+### **1. Neural Senses (The Senses)**
+*   **Voice:** Local, neural TTS using **Piper** for a natural, human-like voice.
+*   **Vision:** Integrated **Moondream2 VLM** allows the OS to see and understand your screen in real-time.
+*   **Hearing:** High-performance Rust-based voice loop with **Barge-In** (it stops talking the moment you speak).
 
-## Features
+### **2. Cognitive Architecture (The Brain)**
+*   **Multimodal Orchestration:** The OS can autonomously chain actions (e.g., See screen -> Research web -> Send email).
+*   **Deep Memory:** A **Vector Database (ChromaDB)** provides long-term semantic recall of your conversations and documents.
+*   **Bayesian Intuition:** A background learning engine that anticipates your habits based on time and context.
 
-- **Local LLM Brain:** Llama 3.2 1B running locally (Zero API keys)
-- **Direct Voice Command:** "Computer" wake word triggers immediate actions
-- **Day Planner:** Weather + calendar outfit recommendations
-- **Cryptographic Audit:** SHA-256 hash-chain logging for all actions
-- **Browser OAuth:** Connect Google/Microsoft accounts with one click
+### **3. Physical Agency (The Hands)**
+*   **UI Automation:** Deep integration with **AT-SPI** and **xdotool** allows the AI to click buttons and type in any application.
+*   **Web Sovereignty:** A headless browser engine (**Playwright**) lets the AI navigate the web and manage accounts autonomously.
+*   **Workspace Orchestrator:** The AI can physically arrange, move, and maximize your windows to suit your current task.
 
-## Voice Commands
+### **4. System Sovereignty (The Soul)**
+*   **Self-Evolution:** The OS can pull its own source code and re-compile itself on command.
+*   **Autonomous Identity:** Your assistant has its own private email identity for managing trials and external services.
+*   **Augmented HUD:** A native Rust, transparent overlay that "points" at things on your screen with pulsing highlighters.
 
-Speak naturally. No memorization needed.
+---
 
-| Say This | What Happens |
-|----------|--------------|
-| "I want to browse the web" | Opens Firefox |
-| "Play some music" | Opens Spotify |
-| "It's too loud" | Mutes volume |
-| "Dark mode please" | Lowers brightness |
-| "Get me ready for the day" | Checks weather, calendar, email |
-| "What should I wear today?" | Outfit recommendation |
-| "Summarize my email" | Inbox summary |
-| "Lock my computer" | Sleep mode |
+## 🚀 Quick Start
 
-**Proactive Alerts:** The assistant notifies you about low battery, network changes, and system events.
-
-## Architecture
-
-```
-┌─────────────────────────────────────┐
-│  Web Shell (Face)                   │
-│  React-like dashboard + voice UI    │
-└─────────────────────────────────────┘
-              ↓ IPC
-┌─────────────────────────────────────┐
-│  Rust Agent (Core)                  │
-│  Security policy, audit log, events │
-└─────────────────────────────────────┘
-              ↓ Tool Calls
-┌─────────────────────────────────────┐
-│  Python Intelligence (Brain)        │
-│  Local LLM intent parsing           │
-└─────────────────────────────────────┘
-```
-
-## Quickstart
-
-### Option 1: Pre-built ISO (Recommended)
-
-1. Download ISO from [Releases](https://gitlab.com/jmt3/ai-distro/-/releases)
-2. Flash to USB with [BalenaEtcher](https://etcher.balena.io/)
-3. Boot from USB
-4. The assistant launches automatically in fullscreen kiosk mode
-
-### Option 2: Docker (Headless)
-
+### **1. One-Command Installation**
+Transform your Linux machine into an AI Distro node:
 ```bash
-docker build -t ai-distro-agent .
-docker run -v /tmp:/tmp -e AI_DISTRO_IPC_SOCKET=/tmp/ai-distro.sock ai-distro-agent
+bash install.sh
 ```
 
-### Option 3: Local Development
+### **2. The Master CLI (`ai-distro`)**
+Use the unified master command to control your new partner:
+*   `ai-distro start`: Bring the AI stack to life.
+*   `ai-distro status`: Check the system's "System Pulse" and health.
+*   `ai-distro setup`: Run the magical voice-guided onboarding wizard.
+*   `ai-distro stop`: Gracefully shut down AI components.
 
-```bash
-# Build Rust agent
-cd src/rust/ai-distro-agent
-cargo build --release
+---
 
-# Run agent
-AI_DISTRO_IPC_SOCKET=/tmp/ai-distro.sock ./target/release/ai-distro-agent
+## 🛡️ Privacy & Security
+*   **100% Local:** All reasoning (Llama 3.2), vision (Moondream), and speech (Piper) happens on **your hardware**.
+*   **Cryptographic Auditing:** Every action the AI takes is recorded in a secure, signed audit log.
+*   **Policy Engine:** You define exactly what the AI is allowed to do via the `policy.json` rules.
 
-# In another terminal, run shell UI
-AI_DISTRO_SHELL_STATIC_DIR="$PWD/assets/ui/shell" \
-python3 tools/shell/ai_distro_shell.py
+---
 
-# Open http://127.0.0.1:17842/
-```
-
-## Connecting Google / Microsoft Accounts
-
-**No terminal commands needed.** Connect accounts directly in the Web Shell:
-
-1. Open `http://127.0.0.1:17842/` in your browser
-2. In the sidebar, find **Calendar Provider** or **Email Provider**
-3. Select `Google` or `Microsoft` from the dropdown
-4. Click **Connect** - a browser tab opens for authorization
-5. Approve access → Connection completes automatically
-
-The Web Shell polls for completion and shows status in real-time. Tokens are stored securely in `~/.config/ai-distro/`.
-
-### Manual OAuth (Headless/Advanced)
-
-Only needed for scripts or headless servers:
-
-```bash
-# Google Calendar
-AI_DISTRO_GOOGLE_CLIENT_ID=your_id \
-AI_DISTRO_GOOGLE_CLIENT_SECRET=your_secret \
-python3 tools/agent/google_calendar_oauth.py auth-url
-# Authorize in browser, then:
-python3 tools/agent/google_calendar_oauth.py exchange "<code>"
-
-# Gmail
-python3 tools/agent/google_gmail_oauth.py auth-url
-python3 tools/agent/google_gmail_oauth.py exchange "<code>"
-
-# Microsoft
-python3 tools/agent/microsoft_outlook_oauth.py auth-url
-python3 tools/agent/microsoft_outlook_oauth.py exchange "<code>"
-```
-
-### Local Calendar (No OAuth Required)
-
-Store events in `~/.config/ai-distro/calendar-events.json`:
-
-```json
-[
-  {
-    "date": "2026-02-16",
-    "start": "09:00",
-    "title": "Office planning meeting",
-    "dress_code": "business",
-    "outdoor": false
-  }
-]
-```
-
-## Security
-
-- **Deny by default:** Unknown or high-risk actions are blocked
-- **Confirmation required:** Package installs, power operations, email drafts
-- **Explicit memory:** `remember ...` commands are user-controlled
-- **Audit trail:** All actions logged with hash-chain integrity
-
-### Policy Configuration
-
-Edit `configs/policy.json`:
-- `open_url_allowed_domains` - Allowed URL domains
-- `open_app_allowed` - Allowed applications
-- `rate_limit_per_minute_*` - Rate limiting per action
-
-## Development
-
-### Quality Gate
-
-```bash
-make qa-voice
-```
-
-### Build ISO
-
-```bash
-make deps
-make iso
-```
-
-## Documentation
-
-- `docs/VOICE_UX.md` - Voice interaction patterns
-- `docs/IPC.md` - Inter-process communication
-- `docs/RUNTIME_ENV.md` - Environment variables
-- `docs/AUNT_USABILITY_ROADMAP.md` - Future usability improvements
-
-## License
-
-MIT
+**AI Distro: It doesn't just run your apps. it understands your world.**
