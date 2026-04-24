@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::Path;
@@ -46,26 +46,41 @@ pub fn persist_audit_chain_state(path: &str, state: &AuditChainState) {
     }
 }
 
-pub fn append_audit_record(path: &str, state: &mut AuditChainState, mut event: serde_json::Value) -> io::Result<()> {
+pub fn append_audit_record(
+    path: &str,
+    state: &mut AuditChainState,
+    mut event: serde_json::Value,
+) -> io::Result<()> {
     let next_seq = state.seq.saturating_add(1);
     let prev_hash = state.last_hash.clone();
-    
+
     if let Some(event_obj) = event.as_object_mut() {
         event_obj.insert("seq".to_string(), serde_json::json!(next_seq));
         event_obj.insert("prev_hash".to_string(), serde_json::json!(prev_hash));
     } else {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "audit event must be object"));
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "audit event must be object",
+        ));
     }
 
-    let event_json = serde_json::to_string(&event)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("audit serialize: {}", e)))?;
+    let event_json = serde_json::to_string(&event).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("audit serialize: {}", e),
+        )
+    })?;
     let chain_hash = compute_chain_hash_sha256(next_seq, &state.last_hash, &event_json);
 
     if let Some(event_obj) = event.as_object_mut() {
         event_obj.insert("chain_hash".to_string(), serde_json::json!(chain_hash));
     }
-    let final_line = serde_json::to_string(&event)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("audit serialize: {}", e)))?;
+    let final_line = serde_json::to_string(&event).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("audit serialize: {}", e),
+        )
+    })?;
 
     let mut file = OpenOptions::new().create(true).append(true).open(path)?;
     writeln!(file, "{}", final_line)?;

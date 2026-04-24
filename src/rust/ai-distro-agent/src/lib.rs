@@ -1,15 +1,15 @@
 pub mod audit;
-pub mod policy;
-pub mod utils;
+pub mod events;
 pub mod handlers;
 pub mod ipc;
-pub mod events;
+pub mod policy;
+pub mod utils;
 
-use ai_distro_common::{ActionRequest, ActionResponse, PolicyConfig, PolicyDecision, Capabilities};
+use crate::utils::error_response;
+use ai_distro_common::{ActionRequest, ActionResponse, Capabilities, PolicyConfig, PolicyDecision};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::utils::error_response;
 
 pub type Handler = fn(&ActionRequest) -> ActionResponse;
 const MAX_PENDING_CONFIRMATIONS: usize = 128;
@@ -29,7 +29,9 @@ pub fn load_skills(dir: &str) -> HashMap<String, ai_distro_common::SkillManifest
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("json") {
                 if let Ok(content) = std::fs::read_to_string(&path) {
-                    if let Ok(manifest) = serde_json::from_str::<ai_distro_common::SkillManifest>(&content) {
+                    if let Ok(manifest) =
+                        serde_json::from_str::<ai_distro_common::SkillManifest>(&content)
+                    {
                         skills.insert(manifest.name.clone(), manifest);
                     }
                 }
@@ -41,106 +43,257 @@ pub fn load_skills(dir: &str) -> HashMap<String, ai_distro_common::SkillManifest
 
 pub fn action_registry() -> HashMap<&'static str, Handler> {
     let mut map: HashMap<&'static str, Handler> = HashMap::new();
-    
+
     // Package management
-    map.insert("package_install", handlers::package::handle_package_install as Handler);
-    map.insert("package_remove", handlers::package::handle_package_remove as Handler);
-    
+    map.insert(
+        "package_install",
+        handlers::package::handle_package_install as Handler,
+    );
+    map.insert(
+        "package_remove",
+        handlers::package::handle_package_remove as Handler,
+    );
+
     // System management
-    map.insert("system_update", handlers::system::handle_system_update as Handler);
-    map.insert("self_update", handlers::system::handle_self_update as Handler);
-    map.insert("import_legacy_data", handlers::system::handle_import_legacy_data as Handler);
-    map.insert("system_heal", handlers::system::handle_system_heal as Handler);
-    
+    map.insert(
+        "system_update",
+        handlers::system::handle_system_update as Handler,
+    );
+    map.insert(
+        "self_update",
+        handlers::system::handle_self_update as Handler,
+    );
+    map.insert(
+        "import_legacy_data",
+        handlers::system::handle_import_legacy_data as Handler,
+    );
+    map.insert(
+        "system_heal",
+        handlers::system::handle_system_heal as Handler,
+    );
+
     // Media controls
     map.insert("set_volume", handlers::media::handle_set_volume as Handler);
-    map.insert("set_brightness", handlers::media::handle_set_brightness as Handler);
-    
+    map.insert(
+        "set_brightness",
+        handlers::media::handle_set_brightness as Handler,
+    );
+
     // Network controls
-    map.insert("network_wifi_on", handlers::network::handle_wifi_on as Handler);
-    map.insert("network_wifi_off", handlers::network::handle_wifi_off as Handler);
-    map.insert("network_bluetooth_on", handlers::network::handle_bluetooth_on as Handler);
-    map.insert("network_bluetooth_off", handlers::network::handle_bluetooth_off as Handler);
-    
+    map.insert(
+        "network_wifi_on",
+        handlers::network::handle_wifi_on as Handler,
+    );
+    map.insert(
+        "network_wifi_off",
+        handlers::network::handle_wifi_off as Handler,
+    );
+    map.insert(
+        "network_bluetooth_on",
+        handlers::network::handle_bluetooth_on as Handler,
+    );
+    map.insert(
+        "network_bluetooth_off",
+        handlers::network::handle_bluetooth_off as Handler,
+    );
+
     // Hardware control
     map.insert("wifi_scan", handlers::hardware::handle_wifi_scan as Handler);
-    map.insert("wifi_connect", handlers::hardware::handle_wifi_connect as Handler);
-    map.insert("bluetooth_scan", handlers::hardware::handle_bluetooth_scan as Handler);
-    map.insert("bluetooth_pair", handlers::hardware::handle_bluetooth_pair as Handler);
-    
+    map.insert(
+        "wifi_connect",
+        handlers::hardware::handle_wifi_connect as Handler,
+    );
+    map.insert(
+        "bluetooth_scan",
+        handlers::hardware::handle_bluetooth_scan as Handler,
+    );
+    map.insert(
+        "bluetooth_pair",
+        handlers::hardware::handle_bluetooth_pair as Handler,
+    );
+
     // Universal App Store
-    map.insert("store_search", handlers::store::handle_store_search as Handler);
-    map.insert("store_install", handlers::store::handle_store_install as Handler);
-    
+    map.insert(
+        "store_search",
+        handlers::store::handle_store_search as Handler,
+    );
+    map.insert(
+        "store_install",
+        handlers::store::handle_store_install as Handler,
+    );
+
     // Power management
-    map.insert("power_reboot", handlers::power::handle_power_reboot as Handler);
-    map.insert("power_shutdown", handlers::power::handle_power_shutdown as Handler);
-    map.insert("power_sleep", handlers::power::handle_power_sleep as Handler);
-    
+    map.insert(
+        "power_reboot",
+        handlers::power::handle_power_reboot as Handler,
+    );
+    map.insert(
+        "power_shutdown",
+        handlers::power::handle_power_shutdown as Handler,
+    );
+    map.insert(
+        "power_sleep",
+        handlers::power::handle_power_sleep as Handler,
+    );
+
     // Memory and context
     map.insert("remember", handlers::memory::handle_remember as Handler);
-    map.insert("read_context", handlers::memory::handle_read_context as Handler);
-    
+    map.insert(
+        "read_context",
+        handlers::memory::handle_read_context as Handler,
+    );
+
     // UI and filesystem
     map.insert("open_url", handlers::ui::handle_open_url as Handler);
     map.insert("open_app", handlers::ui::handle_open_app as Handler);
     map.insert("list_files", handlers::ui::handle_list_files as Handler);
-    map.insert("screen_context", handlers::ui::handle_screen_context as Handler);
-    map.insert("launch_app_semantic", handlers::ui::handle_launch_app_semantic as Handler);
-    
+    map.insert(
+        "screen_context",
+        handlers::ui::handle_screen_context as Handler,
+    );
+    map.insert(
+        "launch_app_semantic",
+        handlers::ui::handle_launch_app_semantic as Handler,
+    );
+
     // External tools (Python-based)
-    map.insert("weather_get", handlers::tools::handle_weather_get as Handler);
-    map.insert("calendar_add_event", handlers::tools::handle_calendar_add_event as Handler);
-    map.insert("calendar_list_day", handlers::tools::handle_calendar_list_day as Handler);
-    map.insert("email_inbox_summary", handlers::tools::handle_email_inbox_summary as Handler);
-    map.insert("email_search", handlers::tools::handle_email_search as Handler);
-    map.insert("email_draft", handlers::tools::handle_email_draft as Handler);
-    map.insert("plan_day_outfit", handlers::tools::handle_plan_day_outfit as Handler);
+    map.insert(
+        "weather_get",
+        handlers::tools::handle_weather_get as Handler,
+    );
+    map.insert(
+        "calendar_add_event",
+        handlers::tools::handle_calendar_add_event as Handler,
+    );
+    map.insert(
+        "calendar_list_day",
+        handlers::tools::handle_calendar_list_day as Handler,
+    );
+    map.insert(
+        "email_inbox_summary",
+        handlers::tools::handle_email_inbox_summary as Handler,
+    );
+    map.insert(
+        "email_search",
+        handlers::tools::handle_email_search as Handler,
+    );
+    map.insert(
+        "email_draft",
+        handlers::tools::handle_email_draft as Handler,
+    );
+    map.insert(
+        "plan_day_outfit",
+        handlers::tools::handle_plan_day_outfit as Handler,
+    );
 
     // Privacy dashboard
-    map.insert("privacy_status", handlers::privacy::handle_privacy_status as Handler);
-    map.insert("privacy_log", handlers::privacy::handle_privacy_log as Handler);
-    map.insert("privacy_check_active", handlers::privacy::handle_privacy_check_active as Handler);
-    
+    map.insert(
+        "privacy_status",
+        handlers::privacy::handle_privacy_status as Handler,
+    );
+    map.insert(
+        "privacy_log",
+        handlers::privacy::handle_privacy_log as Handler,
+    );
+    map.insert(
+        "privacy_check_active",
+        handlers::privacy::handle_privacy_check_active as Handler,
+    );
+
     // Workspace management
-    map.insert("workspace_save", handlers::workspace::handle_workspace_save as Handler);
-    map.insert("workspace_restore", handlers::workspace::handle_workspace_restore as Handler);
-    map.insert("workspace_list", handlers::workspace::handle_workspace_list as Handler);
-    map.insert("workspace_switch", handlers::workspace::handle_workspace_switch as Handler);
-    map.insert("workspace_arrange", handlers::workspace::handle_workspace_arrange as Handler);
-    map.insert("window_move", handlers::workspace::handle_window_move as Handler);
-    map.insert("window_maximize", handlers::workspace::handle_window_maximize as Handler);
-    
+    map.insert(
+        "workspace_save",
+        handlers::workspace::handle_workspace_save as Handler,
+    );
+    map.insert(
+        "workspace_restore",
+        handlers::workspace::handle_workspace_restore as Handler,
+    );
+    map.insert(
+        "workspace_list",
+        handlers::workspace::handle_workspace_list as Handler,
+    );
+    map.insert(
+        "workspace_switch",
+        handlers::workspace::handle_workspace_switch as Handler,
+    );
+    map.insert(
+        "workspace_arrange",
+        handlers::workspace::handle_workspace_arrange as Handler,
+    );
+    map.insert(
+        "window_move",
+        handlers::workspace::handle_window_move as Handler,
+    );
+    map.insert(
+        "window_maximize",
+        handlers::workspace::handle_window_maximize as Handler,
+    );
+
     // UI Hands (Automation)
     map.insert("ui_click", handlers::hands::handle_ui_click as Handler);
     map.insert("ui_type", handlers::hands::handle_ui_type as Handler);
-    map.insert("ui_shortcut", handlers::hands::handle_ui_shortcut as Handler);
-    
-    // Display and theme management
-    map.insert("set_dark_mode", handlers::display::handle_set_dark_mode as Handler);
-    map.insert("set_light_mode", handlers::display::handle_set_light_mode as Handler);
-    map.insert("toggle_theme", handlers::display::handle_toggle_theme as Handler);
-    map.insert("set_theme_schedule", handlers::display::handle_set_theme_schedule as Handler);
-    map.insert("get_theme_status", handlers::display::handle_get_theme_status as Handler);
-    map.insert("set_night_light", handlers::display::handle_set_night_light as Handler);
-    map.insert("apply_scheduled_theme", handlers::display::handle_apply_scheduled_theme as Handler);
-    
-    // Skill management
-    map.insert("skill_install", handlers::skill::handle_skill_install as Handler);
-    map.insert("skill_list", handlers::skill::handle_skill_list as Handler);
-    
+    map.insert(
+        "ui_shortcut",
+        handlers::hands::handle_ui_shortcut as Handler,
+    );
 
-    
+    // Display and theme management
+    map.insert(
+        "set_dark_mode",
+        handlers::display::handle_set_dark_mode as Handler,
+    );
+    map.insert(
+        "set_light_mode",
+        handlers::display::handle_set_light_mode as Handler,
+    );
+    map.insert(
+        "toggle_theme",
+        handlers::display::handle_toggle_theme as Handler,
+    );
+    map.insert(
+        "set_theme_schedule",
+        handlers::display::handle_set_theme_schedule as Handler,
+    );
+    map.insert(
+        "get_theme_status",
+        handlers::display::handle_get_theme_status as Handler,
+    );
+    map.insert(
+        "set_night_light",
+        handlers::display::handle_set_night_light as Handler,
+    );
+    map.insert(
+        "apply_scheduled_theme",
+        handlers::display::handle_apply_scheduled_theme as Handler,
+    );
+
+    // Skill management
+    map.insert(
+        "skill_install",
+        handlers::skill::handle_skill_install as Handler,
+    );
+    map.insert("skill_list", handlers::skill::handle_skill_list as Handler);
+
     // Core built-ins
     map.insert("ping", handle_ping as Handler);
     map.insert("get_capabilities", handle_get_capabilities as Handler);
-    map.insert("proactive_suggestion", handle_proactive_suggestion as Handler);
-    
+    map.insert(
+        "proactive_suggestion",
+        handle_proactive_suggestion as Handler,
+    );
+
     // Identity and Email
-    map.insert("get_autonomous_address", handlers::tools::handle_get_autonomous_address as Handler);
-    map.insert("poll_autonomous_mail", handlers::tools::handle_poll_autonomous_mail as Handler);
+    map.insert(
+        "get_autonomous_address",
+        handlers::tools::handle_get_autonomous_address as Handler,
+    );
+    map.insert(
+        "poll_autonomous_mail",
+        handlers::tools::handle_poll_autonomous_mail as Handler,
+    );
     map.insert("web_task", handlers::tools::handle_web_task as Handler);
-    
+
     map
 }
 
@@ -148,7 +301,10 @@ pub fn handle_proactive_suggestion(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("{}");
     // Parse the payload to extract the message
     let msg = if let Ok(val) = serde_json::from_str::<serde_json::Value>(payload) {
-        val["message"].as_str().unwrap_or("Insight detected").to_string()
+        val["message"]
+            .as_str()
+            .unwrap_or("Insight detected")
+            .to_string()
     } else {
         "Insight detected".to_string()
     };
@@ -195,11 +351,13 @@ pub fn handle_request(
     request: ActionRequest,
 ) -> ActionResponse {
     let response = handle_request_inner(policy, registry, request.clone());
-    
+
     // Cryptographic Audit Log
-    let audit_log = std::env::var("AI_DISTRO_AUDIT_LOG").unwrap_or_else(|_| "/var/log/ai-distro/audit.json".to_string());
-    let audit_state = std::env::var("AI_DISTRO_AUDIT_STATE").unwrap_or_else(|_| "/var/lib/ai-distro/audit_state.json".to_string());
-    
+    let audit_log = std::env::var("AI_DISTRO_AUDIT_LOG")
+        .unwrap_or_else(|_| "/var/log/ai-distro/audit.json".to_string());
+    let audit_state = std::env::var("AI_DISTRO_AUDIT_STATE")
+        .unwrap_or_else(|_| "/var/lib/ai-distro/audit_state.json".to_string());
+
     let mut state = audit::load_audit_chain_state(&audit_state);
     let event = serde_json::json!({
         "ts": audit::now_epoch_secs(),
@@ -213,9 +371,16 @@ pub fn handle_request(
     // Multimodal Orchestration Loop (Recursive Reasoning)
     // If the last action was 'internal' (like seeing the screen) and we have a message,
     // feed it back to the brain to see if it wants to take a NEXT step.
-    if response.status == "ok" && (request.name == "screen_context" || request.name == "read_context" || request.name == "get_autonomous_address") {
+    if response.status == "ok"
+        && (request.name == "screen_context"
+            || request.name == "read_context"
+            || request.name == "get_autonomous_address")
+    {
         if let Some(result_text) = &response.message {
-            log::info!("Orchestrator: Feeding result of '{}' back to brain...", request.name);
+            log::info!(
+                "Orchestrator: Feeding result of '{}' back to brain...",
+                request.name
+            );
             let next_request = ActionRequest {
                 version: Some(1),
                 name: "natural_language".to_string(),
@@ -296,18 +461,19 @@ fn handle_request_inner(
             // Try LLM Brain first
             let brain_path = std::env::var("AI_DISTRO_BRAIN")
                 .unwrap_or_else(|_| "tools/agent/brain.py".to_string());
-            
+
             let mut parsed_req: Option<ActionRequest> = None;
-            
+
             if let Ok(output) = std::process::Command::new("python3")
                 .arg(&brain_path)
                 .arg(text)
-                .output() {
+                .output()
+            {
                 if output.status.success() {
                     parsed_req = serde_json::from_slice(&output.stdout).ok();
                 }
             }
-            
+
             // Fallback to Regex Parser
             if parsed_req.is_none() {
                 let parser_path = std::env::var("AI_DISTRO_INTENT_PARSER")
@@ -315,18 +481,19 @@ fn handle_request_inner(
                 if let Ok(output) = std::process::Command::new("python3")
                     .arg(&parser_path)
                     .arg(text)
-                    .output() {
+                    .output()
+                {
                     if output.status.success() {
                         parsed_req = serde_json::from_slice(&output.stdout).ok();
                     }
                 }
             }
-            
+
             if let Some(new_req) = parsed_req {
                 return handle_request(policy, registry, new_req);
             }
         }
-        
+
         return ActionResponse {
             version: 1,
             action: "natural_language".to_string(),
@@ -341,7 +508,12 @@ fn handle_request_inner(
     }
 
     if request.name == "confirm" {
-        let confirmation_id = request.payload.clone().unwrap_or_default().trim().to_string();
+        let confirmation_id = request
+            .payload
+            .clone()
+            .unwrap_or_default()
+            .trim()
+            .to_string();
         if confirmation_id.is_empty() {
             return ActionResponse {
                 version: 1,
@@ -385,13 +557,11 @@ fn handle_request_inner(
             };
         }
 
-        if let PolicyDecision::Deny =
-            ai_distro_common::evaluate_policy_with_payload(
-                policy,
-                &confirmed_request.name,
-                confirmed_request.payload.as_deref(),
-            )
-        {
+        if let PolicyDecision::Deny = ai_distro_common::evaluate_policy_with_payload(
+            policy,
+            &confirmed_request.name,
+            confirmed_request.payload.as_deref(),
+        ) {
             return ActionResponse {
                 version: 1,
                 action: confirmed_request.name.clone(),
@@ -430,14 +600,16 @@ fn handle_request_inner(
     }
 
     // 3. Enforce general policy (Allow/Deny/Confirm)
-    match ai_distro_common::evaluate_policy_with_payload(policy, &request.name, request.payload.as_deref()) {
-        PolicyDecision::Allow => {
-            dispatch_action(registry, &request)
-        }
+    match ai_distro_common::evaluate_policy_with_payload(
+        policy,
+        &request.name,
+        request.payload.as_deref(),
+    ) {
+        PolicyDecision::Allow => dispatch_action(registry, &request),
         PolicyDecision::RequireConfirmation => {
             let confirmation_id = new_confirmation_id(&request.name);
             enqueue_confirmation(confirmation_id.clone(), request.clone());
-             ActionResponse {
+            ActionResponse {
                 version: 1,
                 action: request.name.clone(),
                 status: "confirm".to_string(),
@@ -446,23 +618,21 @@ fn handle_request_inner(
                 confirmation_id: Some(confirmation_id),
             }
         }
-        PolicyDecision::Deny => {
-            ActionResponse {
-                version: 1,
-                action: request.name.clone(),
-                status: "deny".to_string(),
-                message: Some("action denied by policy".to_string()),
-                capabilities: None,
-                confirmation_id: None,
-            }
-        }
+        PolicyDecision::Deny => ActionResponse {
+            version: 1,
+            action: request.name.clone(),
+            status: "deny".to_string(),
+            message: Some("action denied by policy".to_string()),
+            capabilities: None,
+            confirmation_id: None,
+        },
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ai_distro_common::{PolicyConfig, ActionRequest};
+    use ai_distro_common::{ActionRequest, PolicyConfig};
 
     fn confirmation_policy_for_ping() -> PolicyConfig {
         let mut policy = PolicyConfig::default();

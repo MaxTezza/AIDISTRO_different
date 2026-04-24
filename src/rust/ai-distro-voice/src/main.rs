@@ -2,11 +2,10 @@ use ai_distro_common::{
     init_logging_with_config, load_typed_config, ActionRequest, ActionResponse, VoiceConfig,
 };
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::io::{Write, BufRead};
+use std::io::{BufRead, Write};
 use std::os::unix::net::UnixStream;
-use std::process::{Command, Stdio, Child};
+use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
-use tokio::io::AsyncBufReadExt;
 
 static ACTIVE_SPEAKER: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
 
@@ -28,14 +27,15 @@ struct AudioState {
 }
 
 fn agent_roundtrip(socket: &str, request: &ActionRequest) -> Result<ActionResponse, String> {
-    let payload =
-        serde_json::to_string(request).map_err(|e| format!("serialize request failed: {e}"))? + "\n";
+    let payload = serde_json::to_string(request)
+        .map_err(|e| format!("serialize request failed: {e}"))?
+        + "\n";
     let mut stream = UnixStream::connect(socket).map_err(|e| format!("connect failed: {e}"))?;
     stream
         .write_all(payload.as_bytes())
         .map_err(|e| format!("write failed: {e}"))?;
     stream.flush().map_err(|e| format!("flush failed: {e}"))?;
-    
+
     let mut line = String::new();
     let mut reader = std::io::BufReader::new(stream);
     reader
@@ -48,7 +48,7 @@ fn agent_roundtrip(socket: &str, request: &ActionRequest) -> Result<ActionRespon
 fn speak_text(cfg: &VoiceConfig, text: &str) -> Result<(), String> {
     let bin = std::env::var("AI_DISTRO_TTS_BINARY").unwrap_or_else(|_| cfg.tts_binary.clone());
     let model = std::env::var("AI_DISTRO_TTS_MODEL").unwrap_or_else(|_| cfg.tts_model.clone());
-    
+
     if bin.trim().is_empty() {
         return Err("tts binary is empty".to_string());
     }
@@ -63,7 +63,7 @@ fn speak_text(cfg: &VoiceConfig, text: &str) -> Result<(), String> {
         .map_err(|e| format!("spawn piper failed: {e}"))?;
 
     // Spawn aplay
-    let mut aplay = Command::new("aplay")
+    let aplay = Command::new("aplay")
         .args(["-r", "22050", "-f", "S16_LE", "-t", "raw", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
@@ -91,14 +91,14 @@ fn speak_text(cfg: &VoiceConfig, text: &str) -> Result<(), String> {
     }
 
     let _ = piper.wait();
-    
+
     // Wait and clean up aplay
     if let Ok(mut lock) = ACTIVE_SPEAKER.get_or_init(|| Mutex::new(None)).lock() {
         if let Some(mut aplay_child) = lock.take() {
             let _ = aplay_child.wait();
         }
     }
-    
+
     Ok(())
 }
 
@@ -117,7 +117,8 @@ async fn run_asr(cfg: &VoiceConfig, audio_data: Vec<f32>) -> Result<String, Stri
         sample_format: hound::SampleFormat::Int,
     };
     {
-        let mut writer = hound::WavWriter::new(std::io::Cursor::new(&mut wav_buffer), spec).unwrap();
+        let mut writer =
+            hound::WavWriter::new(std::io::Cursor::new(&mut wav_buffer), spec).unwrap();
         for &sample in &audio_data {
             let amplitude = i16::MAX as f32;
             writer.write_sample((sample * amplitude) as i16).unwrap();
@@ -133,10 +134,14 @@ async fn run_asr(cfg: &VoiceConfig, audio_data: Vec<f32>) -> Result<String, Stri
         .map_err(|e| format!("spawn asr failed: {e}"))?;
 
     if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(&wav_buffer).map_err(|e| format!("write asr failed: {e}"))?;
+        stdin
+            .write_all(&wav_buffer)
+            .map_err(|e| format!("write asr failed: {e}"))?;
     }
 
-    let output = child.wait_with_output().map_err(|e| format!("wait asr failed: {e}"))?;
+    let output = child
+        .wait_with_output()
+        .map_err(|e| format!("wait asr failed: {e}"))?;
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     } else {
@@ -144,6 +149,7 @@ async fn run_asr(cfg: &VoiceConfig, audio_data: Vec<f32>) -> Result<String, Stri
     }
 }
 
+#[allow(deprecated)]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cfg: VoiceConfig = load_typed_config("/etc/ai-distro/voice.json");
@@ -156,7 +162,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         host.input_devices()?
             .find(|x| x.name().map(|n| n == cfg.audio_device).unwrap_or(false))
-    }.expect("Failed to find input device");
+    }
+    .expect("Failed to find input device");
 
     log::info!("Using audio device: {}", device.name()?);
 
@@ -180,18 +187,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 s.is_recording = true;
                 s.buffer.extend_from_slice(data);
             } else if s.is_recording {
-                 // Silence detected, could signal end of command
-                 s.is_recording = false;
+                // Silence detected, could signal end of command
+                s.is_recording = false;
             }
         },
         |err| log::error!("Stream error: {}", err),
-        None
+        None,
     )?;
 
     stream.play()?;
     log::info!("Listening for commands...");
 
-    let agent_socket = std::env::var("AI_DISTRO_IPC_SOCKET").unwrap_or_else(|_| "/run/ai-distro/agent.sock".to_string());
+    let agent_socket = std::env::var("AI_DISTRO_IPC_SOCKET")
+        .unwrap_or_else(|_| "/run/ai-distro/agent.sock".to_string());
 
     loop {
         let mut audio_to_process = Vec::new();
@@ -206,9 +214,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             log::info!("Processing audio ({} samples)...", audio_to_process.len());
             match run_asr(&cfg, audio_to_process).await {
                 Ok(text) => {
-                    if text.is_empty() { continue; }
+                    if text.is_empty() {
+                        continue;
+                    }
                     log::info!("Recognized: {}", text);
-                    
+
                     let request = ActionRequest {
                         version: Some(1),
                         name: "natural_language".to_string(),
@@ -230,7 +240,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Err(err) => log::error!("ASR failed: {}", err),
             }
         }
-        
+
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
     }
 }

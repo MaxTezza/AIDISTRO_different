@@ -1,5 +1,5 @@
+use crate::utils::{command_exists, error_response, ok_response, run_command};
 use ai_distro_common::{ActionRequest, ActionResponse};
-use crate::utils::{run_command, command_exists, ok_response, error_response};
 use std::fs;
 use std::process::Command;
 
@@ -54,8 +54,13 @@ pub fn handle_list_files(req: &ActionRequest) -> ActionResponse {
                     })
                 })
                 .collect();
-            ok_response(&req.name, &files.join("
-"))
+            ok_response(
+                &req.name,
+                &files.join(
+                    "
+",
+                ),
+            )
         }
         Err(err) => error_response(&req.name, &format!("failed to list files: {err}")),
     }
@@ -76,16 +81,27 @@ pub fn handle_screen_context(req: &ActionRequest) -> ActionResponse {
         .arg(&vision_script)
         .arg(screenshot_path)
         .arg(req.payload.as_deref().unwrap_or("What do you see?"))
-        .output() {
+        .output()
+    {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            ok_response(&req.name, if msg.is_empty() { "I see your desktop, but couldn't identify specific details." } else { &msg })
+            ok_response(
+                &req.name,
+                if msg.is_empty() {
+                    "I see your desktop, but couldn't identify specific details."
+                } else {
+                    &msg
+                },
+            )
         }
         Ok(out) => {
             let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
             error_response(&req.name, &format!("Vision analysis failed: {}", err))
         }
-        Err(err) => error_response(&req.name, &format!("Failed to launch vision brain: {}", err)),
+        Err(err) => error_response(
+            &req.name,
+            &format!("Failed to launch vision brain: {}", err),
+        ),
     }
 }
 
@@ -97,12 +113,27 @@ pub fn handle_launch_app_semantic(req: &ActionRequest) -> ActionResponse {
     let script = std::env::var("AI_DISTRO_SEMANTIC_LAUNCHER")
         .unwrap_or_else(|_| "tools/agent/semantic_launcher.py".to_string());
 
-    match Command::new("python3").arg(&script).arg("launch").arg(query).output() {
+    match Command::new("python3")
+        .arg(&script)
+        .arg("launch")
+        .arg(query)
+        .output()
+    {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            ok_response(&req.name, if msg.is_empty() { "I found a match and launched it." } else { &msg })
+            ok_response(
+                &req.name,
+                if msg.is_empty() {
+                    "I found a match and launched it."
+                } else {
+                    &msg
+                },
+            )
         }
-        _ => error_response(&req.name, "I couldn't find an application that matches your description."),
+        _ => error_response(
+            &req.name,
+            "I couldn't find an application that matches your description.",
+        ),
     }
 }
 
@@ -121,7 +152,10 @@ fn is_safe_http_url(url: &str) -> bool {
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         return false;
     }
-    if url.chars().any(|c| c.is_ascii_control() || c.is_whitespace()) {
+    if url
+        .chars()
+        .any(|c| c.is_ascii_control() || c.is_whitespace())
+    {
         return false;
     }
     true

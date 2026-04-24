@@ -1,5 +1,5 @@
+use crate::utils::{error_response, ok_response, run_command};
 use ai_distro_common::{ActionRequest, ActionResponse};
-use crate::utils::{run_command, ok_response, error_response};
 
 pub fn handle_wifi_on(req: &ActionRequest) -> ActionResponse {
     match run_command("nmcli", &["radio", "wifi", "on"], None) {

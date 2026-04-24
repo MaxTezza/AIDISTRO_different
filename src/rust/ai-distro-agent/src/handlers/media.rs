@@ -1,5 +1,5 @@
+use crate::utils::{command_exists, error_response, ok_response, run_command};
 use ai_distro_common::{ActionRequest, ActionResponse};
-use crate::utils::{run_command, command_exists, ok_response, error_response};
 
 pub fn handle_set_volume(req: &ActionRequest) -> ActionResponse {
     let Some(volume) = req.payload.as_deref() else {

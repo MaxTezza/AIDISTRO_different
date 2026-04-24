@@ -61,10 +61,16 @@ impl Default for VoiceConfig {
                 log_file: None,
             },
             asr_model: "default-asr".to_string(),
-            tts_model: format!("{}/.cache/ai-distro/piper/en_US-amy-medium.onnx", std::env::var("HOME").unwrap_or_default()),
+            tts_model: format!(
+                "{}/.cache/ai-distro/piper/en_US-amy-medium.onnx",
+                std::env::var("HOME").unwrap_or_default()
+            ),
             audio_device: "default".to_string(),
             asr_binary: "/usr/bin/vosk-server".to_string(),
-            tts_binary: format!("{}/.cache/ai-distro/piper/piper/piper", std::env::var("HOME").unwrap_or_default()),
+            tts_binary: format!(
+                "{}/.cache/ai-distro/piper/piper/piper",
+                std::env::var("HOME").unwrap_or_default()
+            ),
         }
     }
 }
@@ -150,7 +156,11 @@ pub fn init_logging_with_config(cfg: &ServiceConfig) {
     builder.filter_level(cfg.log_level.parse().unwrap_or(log::LevelFilter::Info));
 
     if let Some(path) = cfg.log_file.as_deref() {
-        if let Ok(file) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        if let Ok(file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+        {
             builder.target(env_logger::Target::Pipe(Box::new(file)));
         }
     }
@@ -159,7 +169,12 @@ pub fn init_logging_with_config(cfg: &ServiceConfig) {
     builder.format(move |buf, record| {
         use std::io::Write;
         let ts = buf.timestamp_millis();
-        writeln!(buf, "{ts} [{service}] {} - {}", record.level(), record.args())
+        writeln!(
+            buf,
+            "{ts} [{service}] {} - {}",
+            record.level(),
+            record.args()
+        )
     });
 
     let _ = builder.try_init();
@@ -175,18 +190,21 @@ pub fn init_logging(service: &str, level: &str) {
 }
 
 pub fn load_config(path: &str, fallback_name: &str) -> ServiceConfig {
-    let mut cfg = ServiceConfig::default();
-    cfg.name = fallback_name.to_string();
-
     match fs::read_to_string(path) {
         Ok(contents) => {
             if let Ok(parsed) = serde_json::from_str::<ServiceConfig>(&contents) {
                 parsed
             } else {
-                cfg
+                ServiceConfig {
+                    name: fallback_name.to_string(),
+                    ..Default::default()
+                }
             }
         }
-        Err(_) => cfg,
+        Err(_) => ServiceConfig {
+            name: fallback_name.to_string(),
+            ..Default::default()
+        },
     }
 }
 
@@ -310,7 +328,10 @@ mod tests {
     #[test]
     fn policy_allows_default() {
         let policy = base_policy();
-        if !matches!(evaluate_policy(&policy, "read_context"), PolicyDecision::Allow) {
+        if !matches!(
+            evaluate_policy(&policy, "read_context"),
+            PolicyDecision::Allow
+        ) {
             panic!("expected allow");
         }
     }
@@ -340,11 +361,8 @@ mod tests {
     fn policy_payload_ignores_whitespace() {
         let mut policy = base_policy();
         policy.constraints.package_install_confirm = vec!["docker".to_string()];
-        let decision = evaluate_policy_with_payload(
-            &policy,
-            "package_install",
-            Some("  vim , docker ,curl "),
-        );
+        let decision =
+            evaluate_policy_with_payload(&policy, "package_install", Some("  vim , docker ,curl "));
         if !matches!(decision, PolicyDecision::RequireConfirmation) {
             panic!("expected confirmation for docker with whitespace");
         }

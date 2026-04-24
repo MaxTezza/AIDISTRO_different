@@ -1,4 +1,4 @@
-use ai_distro_common::{PolicyConfig, ActionRequest};
+use ai_distro_common::{ActionRequest, PolicyConfig};
 use std::collections::HashMap;
 use std::fs;
 use std::sync::{Mutex, OnceLock};
@@ -55,10 +55,7 @@ pub fn enforce_action_allowlists(
     }
 }
 
-pub fn enforce_rate_limit(
-    policy: &PolicyConfig,
-    request: &ActionRequest,
-) -> Result<(), String> {
+pub fn enforce_rate_limit(policy: &PolicyConfig, request: &ActionRequest) -> Result<(), String> {
     if request.name == "natural_language" {
         return Ok(());
     }
@@ -68,16 +65,18 @@ pub fn enforce_rate_limit(
         .get(&request.name)
         .copied()
         .unwrap_or(policy.constraints.rate_limit_per_minute_default);
-    
+
     if limit == 0 {
         return Ok(());
     }
-    
+
     let now = now_epoch_secs();
     let window_start = now.saturating_sub(60);
     let buckets = RATE_LIMIT_BUCKETS.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut guard = buckets.lock().map_err(|_| "rate limiter unavailable".to_string())?;
-    
+    let mut guard = buckets
+        .lock()
+        .map_err(|_| "rate limiter unavailable".to_string())?;
+
     let bucket = guard.entry(request.name.clone()).or_default();
     bucket.retain(|ts| *ts >= window_start);
     if bucket.len() >= limit as usize {

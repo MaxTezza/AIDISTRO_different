@@ -24,7 +24,7 @@ pub fn error_response(action: &str, message: &str) -> ActionResponse {
 }
 
 pub fn run_command(
-// ... rest of the file ...
+    // ... rest of the file ...
     cmd: &str,
     args: &[&str],
     env: Option<&[(&str, &str)]>,
@@ -36,7 +36,9 @@ pub fn run_command(
             command.env(key, val);
         }
     }
-    let output = command.output().map_err(|e| format!("{} failed: {}", cmd, e))?;
+    let output = command
+        .output()
+        .map_err(|e| format!("{} failed: {}", cmd, e))?;
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {

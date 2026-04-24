@@ -16,7 +16,7 @@ variables:
 
 .rust-deps:
   before_script:
-    - apt-get update && apt-get install -y libasound2-dev pkg-config libatspi2.0-dev
+    - apt-get update && apt-get install -y libasound2-dev pkg-config libatspi2.0-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgbm-dev libdbus-1-dev
 
 lint-rust:
   stage: lint

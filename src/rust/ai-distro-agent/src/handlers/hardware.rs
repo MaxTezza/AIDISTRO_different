@@ -1,5 +1,5 @@
+use crate::utils::{error_response, ok_response, run_command};
 use ai_distro_common::{ActionRequest, ActionResponse};
-use crate::utils::{ok_response, error_response, run_command};
 
 pub fn handle_wifi_scan(req: &ActionRequest) -> ActionResponse {
     match run_command("nmcli", &["-t", "-f", "SSID,SIGNAL", "dev", "wifi"], None) {
@@ -14,7 +14,11 @@ pub fn handle_wifi_connect(req: &ActionRequest) -> ActionResponse {
     if parts.len() == 2 {
         let ssid = parts[0];
         let password = parts[1];
-        match run_command("nmcli", &["dev", "wifi", "connect", ssid, "password", password], None) {
+        match run_command(
+            "nmcli",
+            &["dev", "wifi", "connect", ssid, "password", password],
+            None,
+        ) {
             Ok(_) => ok_response(&req.name, &format!("Successfully connected to {}", ssid)),
             Err(e) => error_response(&req.name, &e),
         }

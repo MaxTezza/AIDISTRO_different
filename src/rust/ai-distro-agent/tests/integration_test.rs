@@ -1,9 +1,9 @@
-use ai_distro_agent::ipc::run_ipc_socket;
 use ai_distro_agent::action_registry;
-use ai_distro_common::{PolicyConfig, ActionRequest, ActionResponse};
+use ai_distro_agent::ipc::run_ipc_socket;
+use ai_distro_common::{ActionRequest, ActionResponse, PolicyConfig};
+use tempfile::tempdir;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixStream;
-use tempfile::tempdir;
 
 #[tokio::test]
 async fn test_ping_ipc() {
@@ -28,7 +28,9 @@ async fn test_ping_ipc() {
     }
 
     // Connect to agent
-    let stream = UnixStream::connect(socket_str).await.expect("failed to connect to socket");
+    let stream = UnixStream::connect(socket_str)
+        .await
+        .expect("failed to connect to socket");
     let (reader, mut writer) = tokio::io::split(stream);
     let mut reader = BufReader::new(reader);
 
@@ -39,14 +41,25 @@ async fn test_ping_ipc() {
         payload: None,
     };
     let json = serde_json::to_string(&req).expect("failed to serialize");
-    writer.write_all(json.as_bytes()).await.expect("failed to write");
-    writer.write_all(b"
-").await.expect("failed to write newline");
+    writer
+        .write_all(json.as_bytes())
+        .await
+        .expect("failed to write");
+    writer
+        .write_all(
+            b"
+",
+        )
+        .await
+        .expect("failed to write newline");
     writer.flush().await.expect("failed to flush");
 
     // Read response
     let mut line = String::new();
-    reader.read_line(&mut line).await.expect("failed to read line");
+    reader
+        .read_line(&mut line)
+        .await
+        .expect("failed to read line");
     let resp: ActionResponse = serde_json::from_str(&line).expect("failed to deserialize response");
 
     assert_eq!(resp.status, "ok");

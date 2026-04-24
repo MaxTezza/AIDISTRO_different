@@ -1,12 +1,12 @@
-use ai_distro_agent::{action_registry as get_registry};
+use ai_distro_agent::action_registry as get_registry;
 use ai_distro_agent::ipc::run_ipc_socket;
-use ai_distro_common::{load_typed_config, init_logging_with_config, load_policy, AgentConfig};
+use ai_distro_common::{init_logging_with_config, load_policy, load_typed_config, AgentConfig};
 
 #[tokio::main]
 async fn main() {
     // 1. Load configuration
     let cfg: AgentConfig = load_typed_config("/etc/ai-distro/agent.json");
-    
+
     // 2. Initialize logging
     init_logging_with_config(&cfg.service);
     log::info!("AI Distro Agent starting...");
@@ -22,17 +22,24 @@ async fn main() {
 
     // 4. Initialize handler registry
     let registry = get_registry();
-    log::info!("Action registry initialized with {} handlers", registry.len());
+    log::info!(
+        "Action registry initialized with {} handlers",
+        registry.len()
+    );
 
     // 4.5 Load dynamic skills
     let skills_dir = std::env::var("AI_DISTRO_SKILLS_DIR").unwrap_or(cfg.skills_dir);
     let skills = ai_distro_agent::load_skills(&skills_dir);
-    log::info!("Loaded {} dynamic skill manifests from {}", skills.len(), skills_dir);
+    log::info!(
+        "Loaded {} dynamic skill manifests from {}",
+        skills.len(),
+        skills_dir
+    );
 
     // 4.6 Start System Event Monitor (Nervous System)
     let (event_tx, event_rx) = tokio::sync::mpsc::channel(32);
     let nervous_system = ai_distro_agent::events::NervousSystem::new(event_tx);
-    
+
     tokio::spawn(async move {
         if let Err(e) = nervous_system.start().await {
             log::error!("Failed to start system event monitor: {}", e);

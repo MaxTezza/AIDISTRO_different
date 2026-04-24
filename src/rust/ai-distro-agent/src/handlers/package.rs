@@ -1,5 +1,5 @@
+use crate::utils::{command_exists, run_command};
 use ai_distro_common::{ActionRequest, ActionResponse};
-use crate::utils::{run_command, command_exists};
 
 pub fn handle_package_install(req: &ActionRequest) -> ActionResponse {
     let Some(payload) = req.payload.as_deref() else {
@@ -24,7 +24,10 @@ pub fn handle_package_install(req: &ActionRequest) -> ActionResponse {
     } else {
         ok_response(
             &req.name,
-            &format!("I installed this for you: {}. You're all set.", installed.join(", ")),
+            &format!(
+                "I installed this for you: {}. You're all set.",
+                installed.join(", ")
+            ),
         )
     }
 }
@@ -71,19 +74,27 @@ fn parse_package_payload(payload: &str) -> Vec<&str> {
 fn install_package_with_best_source(query: &str) -> Result<String, String> {
     // simplified for brevity in this step, but based on main.rs logic
     if query.contains('.') && command_exists("flatpak") {
-         run_command("flatpak", &["install", "-y", "flathub", query], None)?;
-         return Ok(format!("{} via flatpak", query));
+        run_command("flatpak", &["install", "-y", "flathub", query], None)?;
+        return Ok(format!("{} via flatpak", query));
     }
-    run_command("apt-get", &["install", "-y", query], Some(&[("DEBIAN_FRONTEND", "noninteractive")]))?;
+    run_command(
+        "apt-get",
+        &["install", "-y", query],
+        Some(&[("DEBIAN_FRONTEND", "noninteractive")]),
+    )?;
     Ok(format!("{} via apt", query))
 }
 
 fn remove_package_with_best_source(query: &str) -> Result<String, String> {
     if query.contains('.') && command_exists("flatpak") {
-         run_command("flatpak", &["uninstall", "-y", query], None)?;
-         return Ok(format!("{} via flatpak", query));
+        run_command("flatpak", &["uninstall", "-y", query], None)?;
+        return Ok(format!("{} via flatpak", query));
     }
-    run_command("apt-get", &["remove", "-y", query], Some(&[("DEBIAN_FRONTEND", "noninteractive")]))?;
+    run_command(
+        "apt-get",
+        &["remove", "-y", query],
+        Some(&[("DEBIAN_FRONTEND", "noninteractive")]),
+    )?;
     Ok(format!("{} via apt", query))
 }
 
