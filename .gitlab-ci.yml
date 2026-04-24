@@ -16,7 +16,7 @@ variables:
 
 .rust-deps:
   before_script:
-    - apt-get update && apt-get install -y libasound2-dev pkg-config libatspi2.0-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgbm-dev libdbus-1-dev libfontconfig1-dev libssl-dev
+    - apt-get update && apt-get install -y libasound2-dev pkg-config libatspi2.0-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgbm-dev libdbus-1-dev libfontconfig1-dev libssl-dev xvfb
 
 lint-rust:
   stage: lint
@@ -47,7 +47,7 @@ test-rust:
   allow_failure: true
   script:
     - cd src/rust
-    - cargo test --all
+    - xvfb-run cargo test --all
 
 build-rust:
   stage: build
@@ -64,7 +64,7 @@ build-rust:
     expire_in: 1 week
   script:
     - cd src/rust
-    - cargo build --release --all
+    - xvfb-run cargo build --release --all
 
 build-docker:
   stage: build
