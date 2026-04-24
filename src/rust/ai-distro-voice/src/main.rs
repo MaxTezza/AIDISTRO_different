@@ -4,9 +4,22 @@ use ai_distro_common::{
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::io::{Write, BufRead};
 use std::os::unix::net::UnixStream;
-use std::process::{Command, Stdio};
-use std::sync::{Arc, Mutex};
+use std::process::{Command, Stdio, Child};
+use std::sync::{Arc, Mutex, OnceLock};
 use tokio::io::AsyncBufReadExt;
+
+static ACTIVE_SPEAKER: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
+
+fn stop_speaking() {
+    if let Some(lock) = ACTIVE_SPEAKER.get() {
+        if let Ok(mut opt_child) = lock.lock() {
+            if let Some(mut child) = opt_child.take() {
+                log::info!("Barge-in detected: Stopping speech.");
+                let _ = child.kill();
+            }
+        }
+    }
+}
 
 #[derive(Clone)]
 struct AudioState {
@@ -40,7 +53,7 @@ fn speak_text(cfg: &VoiceConfig, text: &str) -> Result<(), String> {
         return Err("tts binary is empty".to_string());
     }
 
-    // Spawn Piper to generate audio on stdout
+    // Spawn Piper
     let mut piper = Command::new(bin)
         .args(["--model", &model, "--output_raw"])
         .stdin(Stdio::piped())
@@ -49,7 +62,7 @@ fn speak_text(cfg: &VoiceConfig, text: &str) -> Result<(), String> {
         .spawn()
         .map_err(|e| format!("spawn piper failed: {e}"))?;
 
-    // Spawn aplay to play the raw audio from piper's stdout
+    // Spawn aplay
     let mut aplay = Command::new("aplay")
         .args(["-r", "22050", "-f", "S16_LE", "-t", "raw", "-"])
         .stdin(Stdio::piped())
@@ -58,16 +71,33 @@ fn speak_text(cfg: &VoiceConfig, text: &str) -> Result<(), String> {
         .spawn()
         .map_err(|e| format!("spawn aplay failed: {e}"))?;
 
-    if let Some(mut stdin) = piper.stdin.take() {
-        stdin.write_all(text.as_bytes()).map_err(|e| format!("write piper failed: {e}"))?;
+    // Store aplay handle for potential interruption
+    if let Ok(mut lock) = ACTIVE_SPEAKER.get_or_init(|| Mutex::new(None)).lock() {
+        *lock = Some(aplay);
     }
 
-    if let (Some(mut piper_stdout), Some(mut aplay_stdin)) = (piper.stdout.take(), aplay.stdin.take()) {
-        std::io::copy(&mut piper_stdout, &mut aplay_stdin).map_err(|e| format!("pipe audio failed: {e}"))?;
+    if let Some(mut stdin) = piper.stdin.take() {
+        let _ = stdin.write_all(text.as_bytes());
+    }
+
+    if let Some(mut piper_stdout) = piper.stdout.take() {
+        if let Ok(mut lock) = ACTIVE_SPEAKER.get_or_init(|| Mutex::new(None)).lock() {
+            if let Some(aplay_child) = lock.as_mut() {
+                if let Some(mut aplay_stdin) = aplay_child.stdin.take() {
+                    let _ = std::io::copy(&mut piper_stdout, &mut aplay_stdin);
+                }
+            }
+        }
     }
 
     let _ = piper.wait();
-    let _ = aplay.wait();
+    
+    // Wait and clean up aplay
+    if let Ok(mut lock) = ACTIVE_SPEAKER.get_or_init(|| Mutex::new(None)).lock() {
+        if let Some(mut aplay_child) = lock.take() {
+            let _ = aplay_child.wait();
+        }
+    }
     
     Ok(())
 }
@@ -141,9 +171,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &config.into(),
         move |data: &[f32], _: &cpal::InputCallbackInfo| {
             let mut s = state_cb.lock().unwrap();
-            // Simple VAD threshold (this is a placeholder for proper VAD)
+            // Simple VAD threshold
             let rms = (data.iter().map(|&x| x * x).sum::<f32>() / data.len() as f32).sqrt();
             if rms > 0.01 {
+                if !s.is_recording {
+                    stop_speaking();
+                }
                 s.is_recording = true;
                 s.buffer.extend_from_slice(data);
             } else if s.is_recording {

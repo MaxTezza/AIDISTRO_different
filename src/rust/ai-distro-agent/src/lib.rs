@@ -197,6 +197,21 @@ pub fn handle_request(
     let _ = audit::append_audit_record(&audit_log, &mut state, event);
     audit::persist_audit_chain_state(&audit_state, &state);
 
+    // Multimodal Orchestration Loop (Recursive Reasoning)
+    // If the last action was 'internal' (like seeing the screen) and we have a message,
+    // feed it back to the brain to see if it wants to take a NEXT step.
+    if response.status == "ok" && (request.name == "screen_context" || request.name == "read_context" || request.name == "get_autonomous_address") {
+        if let Some(result_text) = &response.message {
+            log::info!("Orchestrator: Feeding result of '{}' back to brain...", request.name);
+            let next_request = ActionRequest {
+                version: Some(1),
+                name: "natural_language".to_string(),
+                payload: Some(format!("The result of the last action '{}' was: {}. Now proceed to the next step of the original goal.", request.name, result_text)),
+            };
+            return handle_request(policy, registry, next_request);
+        }
+    }
+
     // Habit Learning (Bayesian)
     if response.status == "ok" {
         let curator_path = std::env::var("AI_DISTRO_CURATOR")
