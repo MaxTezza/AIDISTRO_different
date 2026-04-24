@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import sys
-import os
 import json
-import asyncio
+import time
 from playwright.sync_api import sync_playwright
 
 def run_task(url, goal):
@@ -47,7 +46,6 @@ def main():
         print(json.dumps({"status": "error", "message": "Usage: web_navigator.py <url> <goal>"}))
         return
 
-    import time
     url = sys.argv[1]
     goal = " ".join(sys.argv[2:])
     

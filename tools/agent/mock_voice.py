@@ -2,7 +2,6 @@
 import socket
 import json
 import time
-import os
 
 AGENT_SOCKET = "/tmp/ai-distro-agent.sock"
 

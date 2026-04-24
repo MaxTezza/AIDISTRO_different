@@ -2,7 +2,6 @@
 import subprocess
 import json
 import socket
-import os
 import time
 
 AGENT_SOCKET = "/run/ai-distro/agent.sock"
@@ -14,7 +13,7 @@ def broadcast_event(title, message):
             client.connect(EVENT_SOCKET)
             event = {"type": "info", "title": title, "message": message}
             client.sendall(json.dumps(event).encode('utf-8') + b"\n")
-    except:
+    except Exception:
         pass
 
 def check_logs():

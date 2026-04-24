@@ -15,7 +15,7 @@ def load_config():
     try:
         with open(CONFIG_PATH, "r") as f:
             return json.load(f)
-    except:
+    except Exception:
         return {}
 
 def load_skills():
@@ -67,7 +67,7 @@ def get_cloud_response(config, system_prompt, user_input):
         try:
             res = requests.post(url, headers=headers, json=data, timeout=10)
             return res.json()["choices"][0]["message"]["content"]
-        except:
+        except Exception:
             return None
     return None
 
@@ -105,7 +105,7 @@ def main():
     
     system_prompt = build_system_prompt(skills)
     if memories:
-        system_prompt += f"\n\nRELEVANT CONTEXT FROM PAST INTERACTIONS:\n- " + "\n- ".join(memories)
+        system_prompt += "\n\nRELEVANT CONTEXT FROM PAST INTERACTIONS:\n- " + "\n- ".join(memories)
     
     result = None
     if config.get("intelligence", {}).get("use_cloud", False):

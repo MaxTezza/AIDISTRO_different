@@ -43,7 +43,7 @@ def main():
                 print(f"I see some text on your screen: '{text.strip()[:100]}...'")
             else:
                 print("I see your screen, but I'm having trouble describing it right now.")
-        except:
+        except Exception:
             print(f"Vision error: {e}")
 
 if __name__ == "__main__":

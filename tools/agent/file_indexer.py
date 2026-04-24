@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-import sys
 import os
-import json
 import time
 import magic
 from pypdf import PdfReader
@@ -41,7 +39,7 @@ class SemanticFileHandler(FileSystemEventHandler):
                 return f"[FILE:IMAGE] {os.path.basename(path)}"
             else:
                 return f"[FILE:OTHER] {os.path.basename(path)} ({mime})"
-        except Exception as e:
+        except Exception:
             return None
 
     def index_file(self, path):

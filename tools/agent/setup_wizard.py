@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import time
-import sys
 import os
 import json
 import subprocess
@@ -33,7 +32,7 @@ def broadcast_event(title, message):
             client.connect(EVENT_SOCKET)
             event = {"type": "info", "title": title, "message": message}
             client.sendall(json.dumps(event).encode('utf-8') + b"\n")
-    except:
+    except Exception:
         pass
 
 def main():

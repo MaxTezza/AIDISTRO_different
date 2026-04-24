@@ -3,7 +3,6 @@ import os
 import json
 import subprocess
 import glob
-from pathlib import Path
 
 # Paths
 MEMORY_ENGINE = os.path.expanduser("~/AI_Distro/tools/agent/memory_engine.py")
@@ -39,7 +38,7 @@ def parse_desktop_file(path):
                 "exec": exec_cmd,
                 "categories": categories
             }
-    except:
+    except Exception:
         pass
     return None
 
@@ -70,7 +69,7 @@ def search_apps(query):
                     app_name = m.split(":")[0].replace("[APP]", "").strip()
                     print(f"Found: {app_name} -> {exec_cmd}")
                     return exec_cmd
-        except:
+        except Exception:
             pass
     return None
 
