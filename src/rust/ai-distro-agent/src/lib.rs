@@ -49,6 +49,8 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
     // System management
     map.insert("system_update", handlers::system::handle_system_update as Handler);
     map.insert("self_update", handlers::system::handle_self_update as Handler);
+    map.insert("import_legacy_data", handlers::system::handle_import_legacy_data as Handler);
+    map.insert("system_heal", handlers::system::handle_system_heal as Handler);
     
     // Media controls
     map.insert("set_volume", handlers::media::handle_set_volume as Handler);

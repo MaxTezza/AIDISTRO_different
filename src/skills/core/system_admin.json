@@ -1,0 +1,16 @@
+{
+  "name": "system_admin",
+  "display_name": "System Administration & Healing",
+  "description": "Allows the assistant to migrate legacy data and autonomously fix system/hardware issues.",
+  "category": "system",
+  "actions": [
+    {
+      "name": "import_legacy_data",
+      "description": "Indexes all files from an old hard drive or backup directory into the AI memory. Payload: '/path/to/data'"
+    },
+    {
+      "name": "system_heal",
+      "description": "Performs an immediate system health check and repairs common driver or service issues."
+    }
+  ]
+}

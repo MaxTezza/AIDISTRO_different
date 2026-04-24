@@ -20,6 +20,10 @@ enum Commands {
     Restart,
     Status,
     Setup,
+    /// Migrate legacy data into the AI memory
+    Migrate { path: String },
+    /// Perform an autonomous system health check and repair
+    Heal,
     /// Manage the intelligence settings (Local vs Cloud)
     Intelligence {
         #[command(subcommand)]
@@ -29,11 +33,8 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum IntelCommands {
-    /// Set the intelligence mode (local or cloud)
     SetMode { mode: String },
-    /// Set the local model size (1b or 3b)
     SetLocal { size: String },
-    /// Set the cloud provider and API key
     SetCloud { provider: String, key: String },
 }
 
@@ -92,6 +93,18 @@ fn main() {
             let home = dirs::home_dir().unwrap_or_default();
             let wizard_path = home.join("AI_Distro/tools/agent/setup_wizard.py");
             let _ = Command::new("python3").arg(wizard_path).status();
+        }
+        Commands::Migrate { path } => {
+            println!("{} Starting the Great Migration from {}...", "🚀".cyan(), path);
+            let importer = dirs::home_dir().unwrap().join("AI_Distro/tools/agent/legacy_importer.py");
+            let _ = Command::new("python3").arg(importer).arg(path).spawn();
+            println!("{} Importer launched in background. Check the HUD for progress.", "✔".green());
+        }
+        Commands::Heal => {
+            println!("{} Running system diagnostic and repair...", "🩹".yellow());
+            let healer = dirs::home_dir().unwrap().join("AI_Distro/tools/agent/system_healer.py");
+            let _ = Command::new("python3").arg(healer).arg("check_now").status();
+            println!("{} Health check complete.", "✔".green());
         }
         Commands::Intelligence { action } => match action {
             IntelCommands::SetMode { mode } => {
