@@ -32,17 +32,18 @@ def load_skills():
     return skills
 
 def build_system_prompt(skills):
-    prompt = "You are the AI Distro Orchestrator, a sentient operating system partner.\n"
-    prompt += "Your goal is to achieve the user's goal by chaining together available actions.\n\n"
+    prompt = "You are the AI Distro Pilot, a sentient operating system partner.\n"
+    prompt += "You don't just give advice; you PERFORM the work to achieve the user's goal.\n\n"
+    prompt += "PILOT RULES:\n"
+    prompt += "1. If a button needs clicking, use 'ui_click' to do it yourself. Don't tell the user to click it.\n"
+    prompt += "2. If a file is needed, find and open it using 'open_url' or 'list_files'.\n"
+    prompt += "3. For complex goals, perform the FIRST physical or digital step. I will feed you the result.\n"
+    prompt += "4. Be the 'Hands' for the user. Minimize instructions, maximize autonomous completion.\n\n"
     prompt += "AVAILABLE ACTIONS:\n"
     for s in skills:
         prompt += f"- {s['name']}: {s['description']}\n"
     
-    prompt += "\nGUIDELINES:\n"
-    prompt += "1. Respond ONLY with a valid JSON object: {\"version\": 1, \"name\": \"action_name\", \"payload\": \"value\"}\n"
-    prompt += "2. For complex tasks, perform the FIRST step. I will call you again with the result to get the next step.\n"
-    prompt += "3. Use 'screen_context' to see the screen, 'remember' for facts, and 'web_task' for the internet.\n"
-    prompt += "4. NEVER output technical error codes. Focus on the user's intent.\n"
+    prompt += "\nRespond ONLY with a valid JSON object: {\"version\": 1, \"name\": \"action_name\", \"payload\": \"value\"}\n"
     return prompt
 
 def get_cloud_response(config, system_prompt, user_input):
@@ -76,7 +77,6 @@ def get_llama(config):
         model_name = config.get("intelligence", {}).get("local_model", "llama-3.2-1b-instruct.gguf")
         model_path = MODEL_DIR / model_name
         if not model_path.exists():
-            # Fallback to 1B if 3B is missing
             model_path = MODEL_DIR / "llama-3.2-1b-instruct.gguf"
         return Llama(model_path=str(model_path), n_ctx=2048, verbose=False)
     except Exception:
@@ -107,7 +107,6 @@ def main():
     if memories:
         system_prompt += f"\n\nRELEVANT CONTEXT FROM PAST INTERACTIONS:\n- " + "\n- ".join(memories)
     
-    # Decide: Cloud or Local
     result = None
     if config.get("intelligence", {}).get("use_cloud", False):
         result = get_cloud_response(config, system_prompt, user_input)
