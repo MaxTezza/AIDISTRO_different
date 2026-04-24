@@ -2,14 +2,21 @@
 import json
 import os
 import sys
+import requests
 from pathlib import Path
 
 # Paths
-DEFAULT_MODEL_URL = "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+CONFIG_PATH = Path(os.path.expanduser("~/AI_Distro/configs/agent.json"))
 MODEL_DIR = Path(os.path.expanduser("~/.cache/ai-distro/models"))
-MODEL_PATH = MODEL_DIR / "llama-3.2-1b-instruct.gguf"
 SKILLS_CORE_DIR = Path(os.environ.get("AI_DISTRO_SKILLS_CORE_DIR", "src/skills/core"))
 SKILLS_DYNAMIC_DIR = Path(os.environ.get("AI_DISTRO_SKILLS_DYNAMIC_DIR", "src/skills/dynamic"))
+
+def load_config():
+    try:
+        with open(CONFIG_PATH, "r") as f:
+            return json.load(f)
+    except:
+        return {}
 
 def load_skills():
     skills = []
@@ -35,21 +42,47 @@ def build_system_prompt(skills):
     prompt += "1. Respond ONLY with a valid JSON object: {\"version\": 1, \"name\": \"action_name\", \"payload\": \"value\"}\n"
     prompt += "2. For complex tasks, perform the FIRST step. I will call you again with the result to get the next step.\n"
     prompt += "3. Use 'screen_context' to see the screen, 'remember' for facts, and 'web_task' for the internet.\n"
-    prompt += "4. If a goal requires sending an email with data from the screen, your first step should be 'screen_context'.\n"
-    prompt += "5. NEVER output technical error codes. Focus on the user's intent.\n"
+    prompt += "4. NEVER output technical error codes. Focus on the user's intent.\n"
     return prompt
 
-def get_llama():
+def get_cloud_response(config, system_prompt, user_input):
+    provider = config.get("intelligence", {}).get("cloud_provider", "openai")
+    api_key = config.get("intelligence", {}).get("api_key", "")
+    
+    if not api_key:
+        return None
+
+    if provider == "openai":
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        data = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input}
+            ],
+            "response_format": {"type": "json_object"}
+        }
+        try:
+            res = requests.post(url, headers=headers, json=data, timeout=10)
+            return res.json()["choices"][0]["message"]["content"]
+        except:
+            return None
+    return None
+
+def get_llama(config):
     try:
         from llama_cpp import Llama
-        if not MODEL_PATH.exists():
-            return None
-        return Llama(model_path=str(MODEL_PATH), n_ctx=2048, verbose=False)
+        model_name = config.get("intelligence", {}).get("local_model", "llama-3.2-1b-instruct.gguf")
+        model_path = MODEL_DIR / model_name
+        if not model_path.exists():
+            # Fallback to 1B if 3B is missing
+            model_path = MODEL_DIR / "llama-3.2-1b-instruct.gguf"
+        return Llama(model_path=str(model_path), n_ctx=2048, verbose=False)
     except Exception:
         return None
 
 def load_memories(user_input):
-    """Retrieves relevant memories for the current input."""
     engine = os.path.join(os.path.dirname(__file__), "memory_engine.py")
     try:
         import subprocess
@@ -66,29 +99,33 @@ def main():
         return
 
     user_input = " ".join(sys.argv[1:])
+    config = load_config()
     skills = load_skills()
     memories = load_memories(user_input)
     
-    llm = get_llama()
-    if not llm:
-        sys.exit(1)
-
     system_prompt = build_system_prompt(skills)
     if memories:
         system_prompt += f"\n\nRELEVANT CONTEXT FROM PAST INTERACTIONS:\n- " + "\n- ".join(memories)
-        system_prompt += "\nUse this context if relevant to provide a personalized response."
     
-    response = llm.create_chat_completion(
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_input}
-        ],
-        response_format={"type": "json_object"}
-    )
+    # Decide: Cloud or Local
+    result = None
+    if config.get("intelligence", {}).get("use_cloud", False):
+        result = get_cloud_response(config, system_prompt, user_input)
+    
+    if not result:
+        llm = get_llama(config)
+        if not llm:
+            sys.exit(1)
+        response = llm.create_chat_completion(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input}
+            ],
+            response_format={"type": "json_object"}
+        )
+        result = response["choices"][0]["message"]["content"]
     
     try:
-        result = response["choices"][0]["message"]["content"]
-        # Ensure it is valid JSON
         json.loads(result)
         print(result)
     except Exception:

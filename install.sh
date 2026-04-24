@@ -28,7 +28,13 @@ mkdir -p ~/.cache/ai-distro/piper
 
 # Llama 3.2
 if [ ! -f ~/.cache/ai-distro/models/llama-3.2-1b-instruct.gguf ]; then
+    echo "Downloading Llama 3.2 1B (Fast)..."
     curl -L -o ~/.cache/ai-distro/models/llama-3.2-1b-instruct.gguf "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+fi
+
+if [ ! -f ~/.cache/ai-distro/models/llama-3.2-3b-instruct.gguf ]; then
+    echo "Downloading Llama 3.2 3B (Smart)..."
+    curl -L -o ~/.cache/ai-distro/models/llama-3.2-3b-instruct.gguf "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf"
 fi
 
 # Piper TTS
