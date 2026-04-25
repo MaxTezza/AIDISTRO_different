@@ -81,6 +81,7 @@ fn main() {
         "ai-distro-hud",
         "ai-distro-voice",
         "ai-distro-curator",
+        "ai-distro-spirit",
     ];
 
     match &cli.command {

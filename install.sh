@@ -18,7 +18,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-pip install websockets pytesseract Pillow chromadb sentence-transformers moondream watchdog pypdf python-magic playwright
+pip install websockets pytesseract Pillow chromadb sentence-transformers moondream watchdog pypdf python-magic playwright python-telegram-bot opencv-python
 playwright install chromium
 
 # 3. Neural Models

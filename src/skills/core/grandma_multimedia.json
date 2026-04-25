@@ -1,0 +1,16 @@
+{
+  "name": "grandma_multimedia",
+  "display_name": "Entertainment & Photos",
+  "description": "Allows the assistant to play music/radio and show photo slideshows.",
+  "category": "entertainment",
+  "actions": [
+    {
+      "name": "player_control",
+      "description": "Controls the music/radio player. Payload: 'play|station' or 'stop' or 'volume|level'."
+    },
+    {
+      "name": "gallery_show",
+      "description": "Shows a slideshow of photos. Payload: 'folder name' (e.g., 'grandkids')."
+    }
+  ]
+}

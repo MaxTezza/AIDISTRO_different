@@ -186,6 +186,24 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
         handlers::tools::handle_plan_day_outfit as Handler,
     );
 
+    // Grandma Skills
+    map.insert(
+        "player_control",
+        handlers::tools::handle_player_control as Handler,
+    );
+    map.insert(
+        "gallery_show",
+        handlers::tools::handle_gallery_show as Handler,
+    );
+    map.insert(
+        "news_headlines",
+        handlers::tools::handle_news_headlines as Handler,
+    );
+    map.insert(
+        "family_message",
+        handlers::tools::handle_family_message as Handler,
+    );
+
     // Privacy dashboard
     map.insert(
         "privacy_status",

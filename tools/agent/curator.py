@@ -76,28 +76,32 @@ class Curator:
         except Exception as e:
             print(f"Curator IPC Error: {e}")
 
+    def check_health_reminders(self):
+        """Sends periodic reminders for medication, hydration, or movement."""
+        now = datetime.now()
+        hour = now.hour
+        minute = now.minute
+
+        # 9 AM: Morning Medication
+        if hour == 9 and minute == 0:
+            self.send_proactive_request("health_reminder", "Good morning! It's time for your morning medication. Have you taken it yet?")
+        
+        # 1 PM: Hydration Check
+        if hour == 13 and minute == 0:
+            self.send_proactive_request("health_reminder", "Just a reminder to stay hydrated! Have a glass of water.")
+
+        # 8 PM: Evening Routine
+        if hour == 20 and minute == 0:
+            self.send_proactive_request("health_reminder", "It's getting late. Don't forget your evening routine.")
+
     def run(self):
-        print("Curator Engine (The Intuition with Bayesian Habits) started.")
+        print("Curator Engine (The Intuition with Bayesian Habits & Health) started.")
         while True:
             try:
-                # 1. System Health
-                battery = psutil.sensors_battery()
-                if battery and battery.percent <= 15 and self.last_battery_alert > 15:
-                    self.send_proactive_request("low_battery", f"Battery is at {battery.percent}%. Enable power saving?")
-                    self.last_battery_alert = 15
-                
-                # 2. Habit Learning
-                habit_suggestion = self.get_proactive_suggestion()
-                if habit_suggestion:
-                    self.send_proactive_request("habit_insight", habit_suggestion)
-
-                # 3. Morning Briefing
-                now = datetime.now()
-                if 7 <= now.hour <= 10 and not self.sent_morning_briefing:
-                    res = subprocess.run([sys.executable, DAY_PLANNER_SCRIPT, "today"], capture_output=True, text=True)
-                    self.send_proactive_request("morning_briefing", res.stdout.strip() or "Good morning!")
-                    self.sent_morning_briefing = True
-            
+                self.check_system()
+                self.check_time_and_events()
+                self.check_health()
+                self.check_health_reminders()
             except Exception as e:
                 print(f"Curator error: {e}")
             

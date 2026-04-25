@@ -1,0 +1,16 @@
+{
+  "name": "grandma_comm_news",
+  "display_name": "News & Family Messaging",
+  "description": "Allows the assistant to read news headlines and send messages to family members.",
+  "category": "communication",
+  "actions": [
+    {
+      "name": "news_headlines",
+      "description": "Reads the top 5 news headlines aloud."
+    },
+    {
+      "name": "family_message",
+      "description": "Sends an email message to a family member. Payload: 'Name|Message' (e.g., 'Daughter|I love you')."
+    }
+  ]
+}

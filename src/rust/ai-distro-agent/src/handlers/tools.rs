@@ -1,5 +1,5 @@
-use crate::utils::{error_response, ok_response};
 use ai_distro_common::{ActionRequest, ActionResponse};
+use crate::utils::{ok_response, error_response};
 use std::process::Command;
 
 pub fn handle_plan_day_outfit(req: &ActionRequest) -> ActionResponse {
@@ -68,14 +68,7 @@ pub fn handle_calendar_add_event(req: &ActionRequest) -> ActionResponse {
     {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            ok_response(
-                &req.name,
-                if msg.is_empty() {
-                    "Calendar event added."
-                } else {
-                    &msg
-                },
-            )
+            ok_response(&req.name, if msg.is_empty() { "Calendar event added." } else { &msg })
         }
         Ok(out) => error_response(
             &req.name,
@@ -221,11 +214,7 @@ pub fn handle_email_draft(req: &ActionRequest) -> ActionResponse {
 pub fn handle_get_autonomous_address(req: &ActionRequest) -> ActionResponse {
     let tool = std::env::var("AI_DISTRO_IDENTITY_TOOL")
         .unwrap_or_else(|_| "tools/agent/autonomous_identity_tool.py".to_string());
-    match Command::new("python3")
-        .arg(tool)
-        .arg("get_address")
-        .output()
-    {
+    match Command::new("python3").arg(tool).arg("get_address").output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             ok_response(&req.name, &msg)
@@ -258,16 +247,73 @@ pub fn handle_web_task(req: &ActionRequest) -> ActionResponse {
 
     let tool = std::env::var("AI_DISTRO_WEB_NAVIGATOR")
         .unwrap_or_else(|_| "tools/agent/web_navigator.py".to_string());
-    match Command::new("python3")
-        .arg(tool)
-        .arg(url)
-        .arg(goal)
-        .output()
-    {
+    match Command::new("python3").arg(tool).arg(url).arg(goal).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             ok_response(&req.name, &msg)
         }
         _ => error_response(&req.name, "failed to execute web task"),
+    }
+}
+
+pub fn handle_player_control(req: &ActionRequest) -> ActionResponse {
+    let payload = req.payload.as_deref().unwrap_or("play");
+    let parts: Vec<&str> = payload.split('|').collect();
+    let cmd = parts[0];
+    let target = if parts.len() > 1 { parts[1] } else { "" };
+
+    let tool = std::env::var("AI_DISTRO_PLAYER_TOOL")
+        .unwrap_or_else(|_| "tools/agent/player_control.py".to_string());
+    match Command::new("python3").arg(tool).arg(cmd).arg(target).output() {
+        Ok(out) if out.status.success() => {
+            let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            ok_response(&req.name, &msg)
+        }
+        _ => error_response(&req.name, "failed to control music player"),
+    }
+}
+
+pub fn handle_gallery_show(req: &ActionRequest) -> ActionResponse {
+    let folder = req.payload.as_deref().unwrap_or("");
+    let tool = std::env::var("AI_DISTRO_GALLERY_TOOL")
+        .unwrap_or_else(|_| "tools/agent/gallery_show.py".to_string());
+    match Command::new("python3").arg(tool).arg(folder).output() {
+        Ok(out) if out.status.success() => {
+            let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            ok_response(&req.name, &msg)
+        }
+        _ => error_response(&req.name, "failed to show photo gallery"),
+    }
+}
+
+pub fn handle_news_headlines(req: &ActionRequest) -> ActionResponse {
+    let tool = std::env::var("AI_DISTRO_NEWS_TOOL")
+        .unwrap_or_else(|_| "tools/agent/news_reader.py".to_string());
+    match Command::new("python3").arg(tool).output() {
+        Ok(out) if out.status.success() => {
+            let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            ok_response(&req.name, &msg)
+        }
+        _ => error_response(&req.name, "failed to fetch news headlines"),
+    }
+}
+
+pub fn handle_family_message(req: &ActionRequest) -> ActionResponse {
+    let payload = req.payload.as_deref().unwrap_or("");
+    let parts: Vec<&str> = payload.split('|').collect();
+    if parts.len() < 2 {
+        return error_response(&req.name, "Invalid payload. Use 'FamilyMember|Message'");
+    }
+    let name = parts[0];
+    let msg = parts[1..].join("|");
+
+    let tool = std::env::var("AI_DISTRO_FAMILY_TOOL")
+        .unwrap_or_else(|_| "tools/agent/family_messenger.py".to_string());
+    match Command::new("python3").arg(tool).arg(name).arg(msg).output() {
+        Ok(out) if out.status.success() => {
+            let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            ok_response(&req.name, &msg)
+        }
+        _ => error_response(&req.name, "failed to send family message"),
     }
 }
