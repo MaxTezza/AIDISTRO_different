@@ -16,7 +16,7 @@ def start_slideshow(folder):
     # Kill any existing feh
     subprocess.run(["pkill", "feh"])
     # feh -Z (auto-zoom) -z (random) -F (fullscreen) -D (delay seconds)
-    subprocess.Popen(["feh", "-Z", "-z", "-F", "-D", "5", path], stdout=subprocess.DEV_NULL, stderr=subprocess.DEV_NULL)
+    subprocess.Popen(["feh", "-Z", "-z", "-F", "-D", "5", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return f"Starting a slideshow of your {folder or 'photos'}."
 
 def main():

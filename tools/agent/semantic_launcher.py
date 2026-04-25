@@ -3,6 +3,7 @@ import os
 import json
 import subprocess
 import glob
+from pathlib import Path
 
 # Paths
 MEMORY_ENGINE = os.path.expanduser("~/AI_Distro/tools/agent/memory_engine.py")
@@ -87,7 +88,7 @@ def main():
         exec_cmd = search_apps(query)
         if exec_cmd:
             print(f"Launching {exec_cmd}...")
-            subprocess.Popen([exec_cmd], stdout=subprocess.DEV_NULL, stderr=subprocess.DEV_NULL)
+            subprocess.Popen([exec_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
             print(f"No application found for '{query}'")
 

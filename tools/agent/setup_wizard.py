@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import time
+import sys
 import os
 import json
 import subprocess
@@ -43,7 +44,7 @@ def main():
     
     # 1. Launch HUD in background
     print("\n[SYSTEM]: Initializing Visual HUD...")
-    subprocess.Popen([HUD_BIN], stdout=subprocess.DEV_NULL, stderr=subprocess.DEV_NULL)
+    subprocess.Popen([HUD_BIN], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(3) # Wait for HUD to bind socket
     
     # 2. Greeting

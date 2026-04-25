@@ -16,7 +16,7 @@ def control_player(command, target=None):
         url = STATIONS.get(target.lower(), target) if target else STATIONS["classical"]
         # Kill any existing mpv
         subprocess.run(["pkill", "mpv"])
-        subprocess.Popen(["mpv", "--no-video", url], stdout=subprocess.DEV_NULL, stderr=subprocess.DEV_NULL)
+        subprocess.Popen(["mpv", "--no-video", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return f"Playing {target or 'music'} for you."
     elif command == "stop":
         subprocess.run(["pkill", "mpv"])
