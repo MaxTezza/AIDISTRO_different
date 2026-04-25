@@ -1,4 +1,4 @@
-use crate::utils::{command_exists, error_response, ok_response, resolve_python_tool, run_command};
+use crate::utils::{error_response, ok_response, resolve_python_tool, run_command};
 use ai_distro_common::{ActionRequest, ActionResponse};
 use std::fs;
 use std::process::Command;

@@ -104,7 +104,8 @@ class Curator:
                 briefing = res.stdout.strip() or "Good morning!"
                 self.send_proactive_request("morning_briefing", briefing)
                 self.sent_morning_briefing = True
-            except Exception: pass
+            except Exception:
+                pass
         elif hour > 10:
             self.sent_morning_briefing = False 
 
@@ -122,7 +123,8 @@ class Curator:
             res = subprocess.run(["systemctl", "--failed", "--quiet"], capture_output=True)
             if res.returncode != 0:
                 self.send_proactive_request("system_health", "I noticed some system services failed. Should I run a diagnostic?")
-        except Exception: pass
+        except Exception:
+            pass
 
     def check_health_reminders(self):
         """Sends periodic reminders for medication, hydration, or movement."""

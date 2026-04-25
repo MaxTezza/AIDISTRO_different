@@ -1,5 +1,5 @@
 use ai_distro_common::ActionResponse;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use std::process::Command;
 
 pub fn resolve_python_tool(env_var: &str, filename: &str) -> String {
