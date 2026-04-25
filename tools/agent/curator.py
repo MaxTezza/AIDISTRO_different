@@ -3,8 +3,6 @@ import time
 import json
 import socket
 import os
-import psutil
-import subprocess
 from datetime import datetime
 import sys
 import sqlite3

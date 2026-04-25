@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import sys
 import subprocess
-import os
 import json
 
 # For a Grandma, we want simple stations: "Classical", "Jazz", "News"

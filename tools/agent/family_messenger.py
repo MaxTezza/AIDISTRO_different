@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import sys
-import subprocess
-import os
 import json
 
 # For Grandma, we map names to real addresses

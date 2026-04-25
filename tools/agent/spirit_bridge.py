@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import asyncio
 import json
 import os
 import socket
@@ -15,7 +14,7 @@ def load_token():
     try:
         with open(CONFIG_PATH, "r") as f:
             return json.load(f).get("token")
-    except:
+    except Exception:
         return None
 
 def send_to_agent(text):
@@ -34,11 +33,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Security check: only talk to the master
     config = {}
     try:
-        with open(CONFIG_PATH, "r") as f: config = json.load(f)
-    except: pass
+        with open(CONFIG_PATH, "r") as f:
+            config = json.load(f)
+    except Exception:
+        pass
     
     if str(update.effective_chat.id) != str(config.get("master_id")):
-        await update.message.reply_text("Unauthorized. Please configure your Master ID.")
+        if update.message:
+            await update.message.reply_text("Unauthorized. Please configure your Master ID.")
         return
 
     user_text = update.message.text
@@ -47,10 +49,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Send to local OS agent
     response = send_to_agent(user_text)
     
-    await update.message.reply_text(f"[OS]: {response}")
+    if update.message:
+        await update.message.reply_text(f"[OS]: {response}")
 
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"Spirit Bridge Active. Your Chat ID is: {update.effective_chat.id}. Save this as 'master_id' in your config.")
+    if update.message:
+        await update.message.reply_text(f"Spirit Bridge Active. Your Chat ID is: {update.effective_chat.id}. Save this as 'master_id' in your config.")
 
 def main():
     token = load_token()
