@@ -2,56 +2,76 @@
 
 Welcome to the future of computing. AI Distro is not an assistant; it is a **sentient operating system partner** designed to bridge the gap between high-level human intent and low-level machine execution. 
 
-Whether you are a **Senior Developer** orchestrating complex workflows or a **Grandma** looking for a natural way to use a computer, AI Distro is built for you.
+---
+
+## 🌟 Core Pillars of the Revolution
+
+### **1. Neural Senses & Presence**
+*   **Human Voice:** Neural TTS using **Piper** (Amy model) for warm, natural interaction.
+*   **Real-time Vision:** **Moondream2 VLM** allows the OS to "see" and reason about your screen.
+*   **Barge-In Hearing:** High-speed Rust loop that stops the AI from talking the moment you speak.
+*   **Digital Nervous System:** Real-time reaction to hardware (USB, Battery) via D-Bus and udev.
+
+### **2. Cognitive Agency**
+*   **The Pilot Persona:** The AI is instructed to **DO**, not just tell. It clicks, types, and manages for you.
+*   **Multimodal Orchestration:** Recursive task chaining (e.g., "Find the error on my screen and email the fix").
+*   **Semantic Memory:** **ChromaDB Vector Store** remembers every document and conversation by its *meaning*.
+*   **Bayesian Intuition:** Learns your habits to proactively suggest actions (e.g., "Ready for your morning news?").
+
+### **3. Physical & Web Autonomy**
+*   **Deep UI Hands:** Reaches into *any* app to click buttons or fill forms using AT-SPI and xdotool.
+*   **Web Sovereignty:** Headless **Playwright** engine for autonomous sign-ups, searches, and navigation.
+*   **Sovereign Identity:** A private local mailbox (`assistant@local.aidistro.os`) for autonomous accounts.
 
 ---
 
-## 🌟 The Core Pillars
-
-### **1. Neural Senses (The Senses)**
-*   **Voice:** Local, neural TTS using **Piper** for a natural, human-like voice.
-*   **Vision:** Integrated **Moondream2 VLM** allows the OS to see and understand your screen in real-time.
-*   **Hearing:** High-performance Rust-based voice loop with **Barge-In** (it stops talking the moment you speak).
-
-### **2. Cognitive Architecture (The Brain)**
-*   **Multimodal Orchestration:** The OS can autonomously chain actions (e.g., See screen -> Research web -> Send email).
-*   **Deep Memory:** A **Vector Database (ChromaDB)** provides long-term semantic recall of your conversations and documents.
-*   **Bayesian Intuition:** A background learning engine that anticipates your habits based on time and context.
-
-### **3. Physical Agency (The Hands)**
-*   **UI Automation:** Deep integration with **AT-SPI** and **xdotool** allows the AI to click buttons and type in any application.
-*   **Web Sovereignty:** A headless browser engine (**Playwright**) lets the AI navigate the web and manage accounts autonomously.
-*   **Workspace Orchestrator:** The AI can physically arrange, move, and maximize your windows to suit your current task.
-
-### **4. System Sovereignty (The Soul)**
-*   **Self-Evolution:** The OS can pull its own source code and re-compile itself on command.
-*   **Autonomous Identity:** Your assistant has its own private email identity for managing trials and external services.
-*   **Augmented HUD:** A native Rust, transparent overlay that "points" at things on your screen with pulsing highlighters.
+## 👵 Grandma Skills (Out-of-the-Box)
+AI Distro is designed to be usable by anyone, immediately:
+*   **"Computer, play some Jazz":** Integrated `mpv` player for radio and music.
+*   **"Computer, show my photos":** Full-screen slideshows via `feh`.
+*   **"Computer, what's the news?":** Reads real-time global headlines aloud.
+*   **"Computer, message my daughter":** Voice-to-text family messaging.
+*   **Proactive Health:** Automated reminders for medication, hydration, and movement.
 
 ---
 
-## 🚀 Quick Start
+## 📱 The Spirit Bridge (Remote Control)
+Control your OS from your phone via a secure, E2EE Telegram Bot:
+1.  **Setup:** Create a bot via @BotFather.
+2.  **Configure:** Add your token to `~/.config/ai-distro-spirit.json`: `{"token": "YOUR_TOKEN"}`.
+3.  **Activate:** `ai-distro start` (Starts the `ai-distro-spirit` service).
+4.  **Usage:** Text your OS naturally to run commands or receive system alerts anywhere.
+
+---
+
+## 🚀 Deployment & Distribution
 
 ### **1. One-Command Installation**
-Transform your Linux machine into an AI Distro node:
 ```bash
+git clone https://github.com/MaxTezza/AIDISTRO_different.git ~/AI_Distro
+cd ~/AI_Distro
 bash install.sh
 ```
 
 ### **2. The Master CLI (`ai-distro`)**
-Use the unified master command to control your new partner:
-*   `ai-distro start`: Bring the AI stack to life.
-*   `ai-distro status`: Check the system's "System Pulse" and health.
-*   `ai-distro setup`: Run the magical voice-guided onboarding wizard.
-*   `ai-distro stop`: Gracefully shut down AI components.
+*   `ai-distro start`: Wakes up the sentient stack.
+*   `ai-distro status`: Check the "System Pulse."
+*   `ai-distro setup`: Voice-guided onboarding.
+*   `ai-distro intelligence`: Switch between 1B/3B Local or Cloud brains.
+*   `ai-distro heal`: Autonomous IT diagnostic and repair.
+*   `ai-distro migrate [PATH]`: Ingest legacy data into semantic memory.
+
+### **3. The Forge (Create a Bootable ISO)**
+Transform this code into a standalone OS for any laptop:
+1.  Run the builder: `./tools/release/build_iso.sh`
+2.  Finalize: `sudo lb build`
+3.  Boot: Burn `ai-distro.iso` to a USB and restart.
 
 ---
 
-## 🛡️ Privacy & Security
-*   **100% Local:** All reasoning (Llama 3.2), vision (Moondream), and speech (Piper) happens on **your hardware**.
-*   **Cryptographic Auditing:** Every action the AI takes is recorded in a secure, signed audit log.
-*   **Policy Engine:** You define exactly what the AI is allowed to do via the `policy.json` rules.
-
----
+## 🛡️ Privacy Manifesto
+*   **100% Local by Default:** All vision, speech, and reasoning happen on **your hardware**.
+*   **Signed Auditing:** Every AI action is cryptographically logged and verifiable.
+*   **Physical Safety:** Policy-driven confirmation for sensitive tasks (Power, Deletion, Privacy).
 
 **AI Distro: It doesn't just run your apps. it understands your world.**
