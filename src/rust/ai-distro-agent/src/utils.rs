@@ -1,5 +1,25 @@
 use ai_distro_common::ActionResponse;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+pub fn resolve_python_tool(env_var: &str, filename: &str) -> String {
+    if let Ok(value) = std::env::var(env_var) {
+        if !value.trim().is_empty() {
+            return value;
+        }
+    }
+
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let repo_tool = repo_root.join("tools/agent").join(filename);
+    if repo_tool.exists() {
+        return repo_tool.to_string_lossy().to_string();
+    }
+
+    Path::new("/usr/lib/ai-distro")
+        .join(filename)
+        .to_string_lossy()
+        .to_string()
+}
 
 pub fn ok_response(action: &str, message: &str) -> ActionResponse {
     ActionResponse {

@@ -1,4 +1,4 @@
-use crate::utils::{command_exists, error_response, ok_response, run_command};
+use crate::utils::{command_exists, error_response, ok_response, resolve_python_tool, run_command};
 use ai_distro_common::{ActionRequest, ActionResponse};
 use std::fs;
 use std::process::Command;
@@ -7,11 +7,13 @@ pub fn handle_open_url(req: &ActionRequest) -> ActionResponse {
     let Some(url) = req.payload.as_deref() else {
         return error_response(&req.name, "missing url");
     };
-    if !is_safe_http_url(url) {
-        return error_response(&req.name, "unsupported or unsafe url");
+
+    if !is_valid_url(url) {
+        return error_response(&req.name, "invalid or unsafe url");
     }
+
     match run_command("xdg-open", &[url], None) {
-        Ok(_) => ok_response(&req.name, "Opening browser."),
+        Ok(_) => ok_response(&req.name, &format!("I've opened {} for you.", url)),
         Err(err) => error_response(&req.name, &err),
     }
 }
@@ -20,23 +22,13 @@ pub fn handle_open_app(req: &ActionRequest) -> ActionResponse {
     let Some(app) = req.payload.as_deref() else {
         return error_response(&req.name, "missing app name");
     };
+
     if !is_valid_app_name(app) {
         return error_response(&req.name, "invalid app name");
     }
-    if command_exists("gtk-launch") {
-        return match run_command("gtk-launch", &[app], None) {
-            Ok(_) => ok_response(&req.name, "Launching app."),
-            Err(err) => error_response(&req.name, &err),
-        };
-    }
-    if command_exists("kstart5") {
-        return match run_command("kstart5", &[app], None) {
-            Ok(_) => ok_response(&req.name, "Launching app."),
-            Err(err) => error_response(&req.name, &err),
-        };
-    }
-    match run_command("xdg-open", &[app], None) {
-        Ok(_) => ok_response(&req.name, "Launching app."),
+
+    match run_command(app, &[], None) {
+        Ok(_) => ok_response(&req.name, &format!("I've launched {}.", app)),
         Err(err) => error_response(&req.name, &err),
     }
 }
@@ -46,21 +38,10 @@ pub fn handle_list_files(req: &ActionRequest) -> ActionResponse {
     match fs::read_dir(path) {
         Ok(entries) => {
             let files: Vec<String> = entries
-                .filter_map(|entry| {
-                    entry.ok().and_then(|e| {
-                        e.path()
-                            .file_name()
-                            .and_then(|n| n.to_str().map(|s| s.to_string()))
-                    })
-                })
+                .filter_map(|e| e.ok())
+                .map(|e| e.file_name().to_string_lossy().to_string())
                 .collect();
-            ok_response(
-                &req.name,
-                &files.join(
-                    "
-",
-                ),
-            )
+            ok_response(&req.name, &files.join(", "))
         }
         Err(err) => error_response(&req.name, &format!("failed to list files: {err}")),
     }
@@ -68,8 +49,7 @@ pub fn handle_list_files(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_screen_context(req: &ActionRequest) -> ActionResponse {
     let screenshot_path = "/tmp/ai-distro-screen.png";
-    let vision_script = std::env::var("AI_DISTRO_VISION_BRAIN")
-        .unwrap_or_else(|_| "tools/agent/vision_brain.py".to_string());
+    let vision_script = resolve_python_tool("AI_DISTRO_VISION_BRAIN", "vision_brain.py");
 
     // 1. Capture Screen
     if let Err(err) = run_command("scrot", &["-o", screenshot_path], None) {
@@ -98,10 +78,7 @@ pub fn handle_screen_context(req: &ActionRequest) -> ActionResponse {
             let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
             error_response(&req.name, &format!("Vision analysis failed: {}", err))
         }
-        Err(err) => error_response(
-            &req.name,
-            &format!("Failed to launch vision brain: {}", err),
-        ),
+        Err(err) => error_response(&req.name, &format!("Failed to launch vision brain: {}", err)),
     }
 }
 
@@ -110,8 +87,7 @@ pub fn handle_launch_app_semantic(req: &ActionRequest) -> ActionResponse {
         return error_response(&req.name, "missing application search query");
     };
 
-    let script = std::env::var("AI_DISTRO_SEMANTIC_LAUNCHER")
-        .unwrap_or_else(|_| "tools/agent/semantic_launcher.py".to_string());
+    let script = resolve_python_tool("AI_DISTRO_SEMANTIC_LAUNCHER", "semantic_launcher.py");
 
     match Command::new("python3")
         .arg(&script)
@@ -142,20 +118,17 @@ fn is_valid_app_name(app: &str) -> bool {
         return false;
     }
     app.chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-fn is_safe_http_url(url: &str) -> bool {
+fn is_valid_url(url: &str) -> bool {
     if url.is_empty() || url.len() > 2048 {
         return false;
     }
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         return false;
     }
-    if url
-        .chars()
-        .any(|c| c.is_ascii_control() || c.is_whitespace())
-    {
+    if url.chars().any(|c| c.is_ascii_control() || c.is_whitespace()) {
         return false;
     }
     true

@@ -1,11 +1,10 @@
-use crate::utils::{error_response, ok_response};
+use crate::utils::{error_response, ok_response, resolve_python_tool};
 use ai_distro_common::{ActionRequest, ActionResponse};
 use std::process::Command;
 
 pub fn handle_plan_day_outfit(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("today");
-    let planner = std::env::var("AI_DISTRO_DAY_PLANNER")
-        .unwrap_or_else(|_| "/usr/local/bin/ai-distro-tools/day_planner.py".to_string());
+    let planner = resolve_python_tool("AI_DISTRO_DAY_PLANNER", "day_planner.py");
     match Command::new("python3").arg(planner).arg(payload).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -32,8 +31,7 @@ pub fn handle_plan_day_outfit(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_weather_get(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("today");
-    let tool = std::env::var("AI_DISTRO_WEATHER_TOOL")
-        .unwrap_or_else(|_| "/usr/lib/ai-distro/weather_router.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_WEATHER_TOOL", "weather_router.py");
     match Command::new("python3").arg(tool).arg(payload).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -58,8 +56,7 @@ pub fn handle_calendar_add_event(req: &ActionRequest) -> ActionResponse {
     let Some(payload) = req.payload.as_deref() else {
         return error_response(&req.name, "missing calendar payload");
     };
-    let tool = std::env::var("AI_DISTRO_CALENDAR_ROUTER")
-        .unwrap_or_else(|_| "/usr/local/bin/ai-distro-tools/calendar_router.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_CALENDAR_ROUTER", "calendar_router.py");
     match Command::new("python3")
         .arg(tool)
         .arg("add")
@@ -90,8 +87,7 @@ pub fn handle_calendar_add_event(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_calendar_list_day(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("today");
-    let tool = std::env::var("AI_DISTRO_CALENDAR_ROUTER")
-        .unwrap_or_else(|_| "/usr/local/bin/ai-distro-tools/calendar_router.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_CALENDAR_ROUTER", "calendar_router.py");
     match Command::new("python3")
         .arg(tool)
         .arg("list")
@@ -122,8 +118,7 @@ pub fn handle_calendar_list_day(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_email_inbox_summary(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("in:inbox newer_than:2d");
-    let tool = std::env::var("AI_DISTRO_EMAIL_ROUTER")
-        .unwrap_or_else(|_| "/usr/local/bin/ai-distro-tools/email_router.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_EMAIL_ROUTER", "email_router.py");
     match Command::new("python3")
         .arg(tool)
         .arg("summary")
@@ -154,8 +149,7 @@ pub fn handle_email_inbox_summary(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_email_search(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("in:inbox");
-    let tool = std::env::var("AI_DISTRO_EMAIL_ROUTER")
-        .unwrap_or_else(|_| "/usr/local/bin/ai-distro-tools/email_router.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_EMAIL_ROUTER", "email_router.py");
     match Command::new("python3")
         .arg(tool)
         .arg("search")
@@ -188,8 +182,7 @@ pub fn handle_email_draft(req: &ActionRequest) -> ActionResponse {
     let Some(payload) = req.payload.as_deref() else {
         return error_response(&req.name, "missing draft payload");
     };
-    let tool = std::env::var("AI_DISTRO_EMAIL_ROUTER")
-        .unwrap_or_else(|_| "/usr/local/bin/ai-distro-tools/email_router.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_EMAIL_ROUTER", "email_router.py");
     match Command::new("python3")
         .arg(tool)
         .arg("draft")
@@ -219,8 +212,7 @@ pub fn handle_email_draft(req: &ActionRequest) -> ActionResponse {
 }
 
 pub fn handle_get_autonomous_address(req: &ActionRequest) -> ActionResponse {
-    let tool = std::env::var("AI_DISTRO_IDENTITY_TOOL")
-        .unwrap_or_else(|_| "tools/agent/autonomous_identity_tool.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_IDENTITY_TOOL", "autonomous_identity_tool.py");
     match Command::new("python3")
         .arg(tool)
         .arg("get_address")
@@ -235,8 +227,7 @@ pub fn handle_get_autonomous_address(req: &ActionRequest) -> ActionResponse {
 }
 
 pub fn handle_poll_autonomous_mail(req: &ActionRequest) -> ActionResponse {
-    let tool = std::env::var("AI_DISTRO_IDENTITY_TOOL")
-        .unwrap_or_else(|_| "tools/agent/autonomous_identity_tool.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_IDENTITY_TOOL", "autonomous_identity_tool.py");
     match Command::new("python3").arg(tool).arg("poll").output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -256,8 +247,7 @@ pub fn handle_web_task(req: &ActionRequest) -> ActionResponse {
     let url = parts[0];
     let goal = parts[1..].join("|");
 
-    let tool = std::env::var("AI_DISTRO_WEB_NAVIGATOR")
-        .unwrap_or_else(|_| "tools/agent/web_navigator.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_WEB_NAVIGATOR", "web_navigator.py");
     match Command::new("python3")
         .arg(tool)
         .arg(url)
@@ -278,8 +268,7 @@ pub fn handle_player_control(req: &ActionRequest) -> ActionResponse {
     let cmd = parts[0];
     let target = if parts.len() > 1 { parts[1] } else { "" };
 
-    let tool = std::env::var("AI_DISTRO_PLAYER_TOOL")
-        .unwrap_or_else(|_| "tools/agent/player_control.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_PLAYER_TOOL", "player_control.py");
     match Command::new("python3")
         .arg(tool)
         .arg(cmd)
@@ -296,8 +285,7 @@ pub fn handle_player_control(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_gallery_show(req: &ActionRequest) -> ActionResponse {
     let folder = req.payload.as_deref().unwrap_or("");
-    let tool = std::env::var("AI_DISTRO_GALLERY_TOOL")
-        .unwrap_or_else(|_| "tools/agent/gallery_show.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_GALLERY_TOOL", "gallery_show.py");
     match Command::new("python3").arg(tool).arg(folder).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -308,8 +296,7 @@ pub fn handle_gallery_show(req: &ActionRequest) -> ActionResponse {
 }
 
 pub fn handle_news_headlines(req: &ActionRequest) -> ActionResponse {
-    let tool = std::env::var("AI_DISTRO_NEWS_TOOL")
-        .unwrap_or_else(|_| "tools/agent/news_reader.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_NEWS_TOOL", "news_reader.py");
     match Command::new("python3").arg(tool).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -328,8 +315,7 @@ pub fn handle_family_message(req: &ActionRequest) -> ActionResponse {
     let name = parts[0];
     let msg = parts[1..].join("|");
 
-    let tool = std::env::var("AI_DISTRO_FAMILY_TOOL")
-        .unwrap_or_else(|_| "tools/agent/family_messenger.py".to_string());
+    let tool = resolve_python_tool("AI_DISTRO_FAMILY_TOOL", "family_messenger.py");
     match Command::new("python3")
         .arg(tool)
         .arg(name)

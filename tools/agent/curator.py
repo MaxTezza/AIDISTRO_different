@@ -3,6 +3,8 @@ import time
 import json
 import socket
 import os
+import psutil
+import subprocess
 from datetime import datetime
 import sys
 import sqlite3
@@ -17,6 +19,7 @@ class Curator:
     def __init__(self):
         self.last_battery_alert = 100
         self.sent_morning_briefing = False
+        self.last_suggestion_slot = None
         self.init_db()
 
     def init_db(self):
@@ -74,26 +77,66 @@ class Curator:
         except Exception as e:
             print(f"Curator IPC Error: {e}")
 
+    def check_system(self):
+        # Battery check
+        battery = psutil.sensors_battery()
+        if battery:
+            percent = battery.percent
+            if percent <= 15 and self.last_battery_alert > 15:
+                self.send_proactive_request("low_battery", f"Battery is at {percent}%. Enable power saving?")
+                self.last_battery_alert = 15
+            elif percent > 15:
+                self.last_battery_alert = percent
+
+        # Disk space check
+        disk = psutil.disk_usage('/')
+        if disk.percent > 90:
+             self.send_proactive_request("low_disk", f"Your main drive is {disk.percent}% full. Want me to find files to archive?")
+
+    def check_time_and_events(self):
+        now = datetime.now()
+        hour = now.hour
+
+        # Morning Briefing (7 AM - 10 AM)
+        if 7 <= hour <= 10 and not self.sent_morning_briefing:
+            try:
+                res = subprocess.run([sys.executable, DAY_PLANNER_SCRIPT, "today"], capture_output=True, text=True)
+                briefing = res.stdout.strip() or "Good morning!"
+                self.send_proactive_request("morning_briefing", briefing)
+                self.sent_morning_briefing = True
+            except Exception: pass
+        elif hour > 10:
+            self.sent_morning_briefing = False 
+
+        # Habit Suggestion
+        suggestion = self.get_proactive_suggestion()
+        if suggestion:
+            slot = (now.year, now.month, now.day, now.hour)
+            if self.last_suggestion_slot != slot:
+                self.send_proactive_request("habit_suggestion", suggestion)
+                self.last_suggestion_slot = slot
+
+    def check_health(self):
+        """Checks for failed system services."""
+        try:
+            res = subprocess.run(["systemctl", "--failed", "--quiet"], capture_output=True)
+            if res.returncode != 0:
+                self.send_proactive_request("system_health", "I noticed some system services failed. Should I run a diagnostic?")
+        except Exception: pass
+
     def check_health_reminders(self):
         """Sends periodic reminders for medication, hydration, or movement."""
         now = datetime.now()
-        hour = now.hour
-        minute = now.minute
-
-        # 9 AM: Morning Medication
-        if hour == 9 and minute == 0:
-            self.send_proactive_request("health_reminder", "Good morning! It's time for your morning medication. Have you taken it yet?")
-        
-        # 1 PM: Hydration Check
-        if hour == 13 and minute == 0:
-            self.send_proactive_request("health_reminder", "Just a reminder to stay hydrated! Have a glass of water.")
-
-        # 8 PM: Evening Routine
-        if hour == 20 and minute == 0:
-            self.send_proactive_request("health_reminder", "It's getting late. Don't forget your evening routine.")
+        if now.minute == 0:
+            if now.hour == 9:
+                self.send_proactive_request("health_reminder", "Time for your morning medication.")
+            elif now.hour == 13:
+                self.send_proactive_request("health_reminder", "Don't forget to stay hydrated!")
+            elif now.hour == 20:
+                self.send_proactive_request("health_reminder", "Evening routine time.")
 
     def run(self):
-        print("Curator Engine (The Intuition with Bayesian Habits & Health) started.")
+        print("Curator Engine (The Intuition) started.")
         while True:
             try:
                 self.check_system()
@@ -101,8 +144,7 @@ class Curator:
                 self.check_health()
                 self.check_health_reminders()
             except Exception as e:
-                print(f"Curator error: {e}")
-            
+                print(f"Curator loop error: {e}")
             time.sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":
