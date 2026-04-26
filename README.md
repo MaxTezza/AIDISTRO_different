@@ -1,85 +1,55 @@
-# AI Distro: The Revolutionary Operating System Partner
+# AI Distro
 
-Welcome to the future of computing. AI Distro is not an assistant; it is a **sentient operating system partner** designed to bridge the gap between high-level human intent and low-level machine execution. 
+AI Distro is an AI-integrated Linux distribution layer that automates system tasks, provides voice and text interaction, and utilizes local AI models to assist users.
 
----
+## System Capabilities
 
-## 🌟 Core Pillars of the Revolution
+### 1. Local AI & Reasoning
+- **Voice Interaction:** Utilizes `Piper` for local Text-to-Speech (TTS) and `SpeechRecognition` for Speech-to-Text (STT) capabilities.
+- **Screen Understanding:** Uses `Moondream2` Vision-Language Model (VLM) running as a local microservice to analyze screenshots and interpret UI state.
+- **Semantic Memory:** Leverages `ChromaDB` for storing and retrieving past interactions and context semantically.
+- **Preference Tracking:** Uses a Bayesian preference engine to track user habits and application usage patterns over time.
 
-### **1. Neural Senses & Presence**
-*   **Human Voice:** Neural TTS using **Piper** (Amy model) for warm, natural interaction.
-*   **Real-time Vision:** **Moondream2 VLM** runs as a persistent microservice — sub-second screen analysis.
-*   **Barge-In Hearing:** High-speed Rust loop that stops the AI from talking the moment you speak.
-*   **Digital Nervous System:** Real-time reaction to hardware (USB, Battery, Network) via D-Bus and udev.
-*   **AT-SPI Deep Hands:** Semantic UI automation — clicks buttons by *name*, not coordinates.
+### 2. Desktop Automation & Control
+- **Accessibility Automation (AT-SPI):** Interacts with applications semantically, allowing the agent to find and click UI elements by name or role rather than fixed screen coordinates.
+- **Coordinate Automation:** Uses `xdotool` as a fallback for direct mouse and keyboard emulation.
+- **System Events:** Integrates with Linux `D-Bus` and `udev` to monitor and react to hardware events (e.g., USB plugging, battery state, network changes).
+- **Web Automation:** Uses `Playwright` to navigate websites, extract information, and perform autonomous web tasks.
+- **System Monitoring:** Health checking scripts to autonomously monitor memory, CPU, and critical background services.
 
-### **2. Cognitive Agency**
-*   **The Pilot Persona:** The AI is instructed to **DO**, not just tell. It clicks, types, and manages for you.
-*   **Multimodal Orchestration:** Recursive task chaining (e.g., "Find the error on my screen and email the fix").
-*   **Semantic Memory:** **ChromaDB Vector Store** remembers every document and conversation by its *meaning*.
-*   **Bayesian Intuition:** Beta-Binomial engine learns your habits to proactively suggest actions.
-*   **Software Forge:** Autonomously writes, tests, and registers new tools based on your needs.
+### 3. Pre-configured "Grandma" Skills
+The system includes simple macros for basic tasks designed for non-technical users:
+- **Multimedia:** Voice-controlled media playback via `mpv`.
+- **Slideshows:** Automated photo viewing using `feh`.
+- **Messaging:** Voice-to-text messaging features utilizing configured local or remote gateways.
+- **News:** Fetches and reads current headlines.
 
-### **3. Physical & Web Autonomy**
-*   **Deep UI Hands:** Reaches into *any* app to click buttons or fill forms using xdotool.
-*   **Web Sovereignty:** Headless **Playwright** engine for autonomous sign-ups, searches, and navigation.
-*   **Sovereign Identity:** A private local mailbox (`assistant@local.aidistro.os`) for autonomous accounts.
+### 4. Development & Utility Tools
+- **Software Forge:** A project scaffolding engine that generates boilerplate code for scripts, web apps, and basic projects.
+- **Telegram Remote Control:** A daemon (`ai-distro-spirit`) that connects the local OS agent to a Telegram bot, allowing users to send commands to their machine remotely.
+- **Local Identity:** Automatically configures a local mailbox (`assistant@local.aidistro.os`) for managing autonomous agent communication.
 
----
+## Architecture
 
-## 👵 Grandma Skills (Out-of-the-Box)
-AI Distro is designed to be usable by anyone, immediately:
-*   **"Computer, play some Jazz":** Integrated `mpv` player for radio and music.
-*   **"Computer, show my photos":** Full-screen slideshows via `feh`.
-*   **"Computer, what's the news?":** Reads real-time global headlines aloud.
-*   **"Computer, message my daughter":** Voice-to-text family messaging.
-*   **Proactive Health:** Automated reminders for medication, hydration, and movement.
+The system is composed of several `systemd` user services:
+- `ai-distro-agent`: The core reasoning and execution loop (Rust/Python).
+- `ai-distro-voice`: The audio processing pipeline.
+- `ai-distro-hud`: Desktop UI overlay built with `egui`.
+- `ai-distro-vision`: The Moondream2 model server.
+- `ai-distro-curator`: Context and memory management.
+- `ai-distro-spirit`: Telegram bot integration.
+- `ai-distro-healer`: Diagnostic and self-repair loops.
+- `ai-distro-hardware`: D-Bus/udev listener.
 
----
+## Installation
 
-## 📱 The Spirit Bridge (Remote Control)
-Control your OS from your phone via a secure Telegram Bot:
-1.  **Setup:** Create a bot via @BotFather.
-2.  **Configure:** Add your token to `~/.config/ai-distro-spirit.json`: `{"token": "YOUR_TOKEN", "master_id": "YOUR_CHAT_ID"}`.
-3.  **Activate:** `ai-distro start` (Starts the `ai-distro-spirit` service).
-4.  **Usage:** Text your OS naturally to run commands or receive system alerts anywhere.
-
----
-
-## 🚀 Deployment & Distribution
-
-### **1. One-Command Installation**
 ```bash
 git clone https://gitlab.com/maxtezza29464/ai_distro.git ~/AI_Distro
 cd ~/AI_Distro
 bash install.sh
 ```
 
-### **2. The Master CLI (`ai-distro`)**
-*   `ai-distro start`: Wakes up the sentient stack (8 services).
-*   `ai-distro stop`: Gracefully shut down all components.
-*   `ai-distro status`: Check the "System Pulse" — services, memory, CPU, battery.
-*   `ai-distro setup`: Voice-guided onboarding.
-*   `ai-distro intelligence mode local|cloud`: Switch between on-device or cloud brains.
-*   `ai-distro heal`: Autonomous IT diagnostic and repair (7 health checks).
-*   `ai-distro migrate [PATH]`: Ingest legacy data into semantic memory.
-*   `ai-distro logs`: Follow live logs from all services.
-*   `ai-distro update`: Self-update — pulls code, rebuilds, restarts.
-*   `ai-distro audit`: Verify the cryptographic audit chain integrity.
-
-### **3. Services (Systemd User Mode)**
-| Service | Purpose |
-|---|---|
-| `ai-distro-agent` | Brain & Action Engine (Rust) |
-| `ai-distro-voice` | Piper TTS + ASR Pipeline (Rust) |
-| `ai-distro-hud` | Desktop Overlay (Rust/egui) |
-| `ai-distro-curator` | Bayesian Proactive Intelligence (Python) |
-| `ai-distro-spirit` | Telegram Remote Control (Python) |
-| `ai-distro-healer` | Autonomous System Repair — 7 health checks (Python) |
-| `ai-distro-hardware` | Digital Nervous System / D-Bus (Python) |
-| `ai-distro-vision` | Persistent Moondream2 VLM on port 7860 (Python) |
-
-### **4. Bootable ISO**
+## Building a Live ISO
 ```bash
 # Build a complete bootable live ISO:
 bash tools/release/build_iso.sh
@@ -88,14 +58,13 @@ cd /tmp/ai-distro-live && sudo lb build
 # Test in QEMU:
 qemu-system-x86_64 -m 4G -cdrom live-image-amd64.hybrid.iso -enable-kvm
 ```
-Includes Sway desktop, Waybar, auto-login, all 8 services pre-configured.
 
----
+## CLI Usage
 
-## 🛡️ Privacy Manifesto
-*   **100% Local by Default:** All vision, speech, and reasoning happen on **your hardware**.
-*   **Signed Auditing:** Every AI action is SHA-256 hash-chained and verifiable via `ai-distro audit`.
-*   **Physical Safety:** Policy-driven confirmation for sensitive tasks (Power, Deletion, Privacy).
-*   **Rate Limiting:** Built-in per-action rate limits prevent runaway automation.
-
-**AI Distro: It doesn't just run your apps. It understands your world.**
+The `ai-distro` command manages the system:
+- `ai-distro start`: Starts all background services.
+- `ai-distro stop`: Stops all services.
+- `ai-distro status`: Shows service health, memory, and system metrics.
+- `ai-distro setup`: Runs the onboarding wizard.
+- `ai-distro logs`: Tails the logs of the background services.
+- `ai-distro heal`: Runs diagnostics and attempts auto-recovery of failed services.

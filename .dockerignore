@@ -1,0 +1,8 @@
+.git
+.venv
+src/rust/target
+release
+legacy
+**/.ruff_cache
+**/.pytest_cache
+**/__pycache__
