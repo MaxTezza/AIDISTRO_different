@@ -333,6 +333,68 @@ def parse_email_draft(text):
     return f"{to}|{subj}|{body}"
 
 
+def parse_software_request(text):
+    """Parse requests to write code, create scripts, or build projects."""
+    # "write me a script that ..."
+    m = re.search(
+        r"\b(?:write|create|make|build|generate)\b\s+(?:me\s+)?(?:a\s+)?"
+        r"(script|program|app|application|web app|flask app|cli tool|service|project)"
+        r"(?:\s+(?:that|to|for|which)\s+)?(.+)?$",
+        text,
+    )
+    if m:
+        kind = m.group(1).strip()
+        desc = (m.group(2) or "").strip()
+
+        if kind in ("script", "program"):
+            payload = json.dumps({"name": "custom_script", "description": desc, "language": "python"})
+            return to_action("software_forge_script", payload)
+        elif kind in ("app", "application", "web app", "flask app"):
+            payload = json.dumps({"name": "custom_app", "type": "flask", "description": desc})
+            return to_action("software_forge_project", payload)
+        elif kind == "cli tool":
+            payload = json.dumps({"name": "custom_cli", "type": "cli", "description": desc})
+            return to_action("software_forge_project", payload)
+        elif kind == "service":
+            payload = json.dumps({"name": "custom_service", "type": "service", "description": desc})
+            return to_action("software_forge_project", payload)
+        elif kind == "project":
+            payload = json.dumps({"name": "custom_project", "type": "generic", "description": desc})
+            return to_action("software_forge_project", payload)
+
+    # "run this code: ..."
+    m = re.search(r"\b(?:run|execute)\b\s+(?:this\s+)?code[:\s]+(.+)$", text, re.DOTALL)
+    if m:
+        code = m.group(1).strip()
+        payload = json.dumps({"code": code, "language": "python"})
+        return to_action("software_forge_execute", payload)
+
+    return None
+
+
+def parse_preference(text):
+    """Parse preference setting requests."""
+    # "set preference X to Y" / "I prefer X"
+    m = re.search(r"\bset\s+(?:my\s+)?preference\s+(\w+)\s+(?:to|=)\s+(.+)$", text)
+    if m:
+        key = m.group(1).strip()
+        val = m.group(2).strip()
+        return to_action("set_preference", json.dumps({"key": key, "value": val}))
+
+    # "enable/disable auto update"
+    m = re.search(r"\b(enable|disable)\s+(?:auto[- ]?)?(?:update|updates)\b", text)
+    if m:
+        val = "enabled" if m.group(1) == "enable" else "disabled"
+        return to_action("set_preference", json.dumps({"key": "auto_update", "value": val}))
+
+    # "i prefer dark mode / light mode"
+    m = re.search(r"\bi prefer\s+(dark|light)\s*mode\b", text)
+    if m:
+        return to_action("set_preference", json.dumps({"key": "theme", "value": m.group(1)}))
+
+    return None
+
+
 def main():
     if len(sys.argv) < 2:
         print(json.dumps(to_action("unknown", "")))
@@ -471,6 +533,18 @@ def main():
         print(json.dumps(to_action("open_app", app)))
         return
         
+    # Software writing / code generation
+    software_match = parse_software_request(text)
+    if software_match:
+        print(json.dumps(software_match))
+        return
+
+    # Preference setting
+    pref_match = parse_preference(text)
+    if pref_match:
+        print(json.dumps(pref_match))
+        return
+
     # Check general concepts
     concept_action = parse_concept(text)
     if concept_action:

@@ -1,0 +1,23 @@
+{
+  "name": "software_forge_script",
+  "display_name": "Software Forge - Script",
+  "description": "Generate a standalone script. The AI writes, tests, and registers code as a new tool. Say 'write me a script that monitors CPU usage' or 'create a program to rename files'.",
+  "category": "development",
+  "handler": {
+    "type": "rust_native"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {"type": "string", "description": "Name for the script"},
+      "description": {"type": "string", "description": "What the script should do"},
+      "language": {"type": "string", "enum": ["python", "bash", "rust"], "description": "Programming language"}
+    }
+  },
+  "examples": [
+    "write me a script that monitors CPU usage",
+    "create a program to rename files in bulk",
+    "generate a python script to convert images"
+  ],
+  "tags": ["development", "code", "automation", "forge"]
+}

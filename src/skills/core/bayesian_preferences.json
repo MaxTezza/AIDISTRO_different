@@ -1,0 +1,23 @@
+{
+  "name": "bayesian_preferences",
+  "display_name": "Bayesian Preference Engine",
+  "description": "Learn and adapt to user preferences using Bayesian inference. The system observes what you do, when you do it, and predicts what you'll want next. Set preferences explicitly with 'set preference theme to dark' or 'enable auto updates'.",
+  "category": "intelligence",
+  "handler": {
+    "type": "rust_native"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "key": {"type": "string", "description": "Preference key"},
+      "value": {"type": "string", "description": "Preference value"}
+    }
+  },
+  "examples": [
+    "set preference theme to dark",
+    "enable auto updates",
+    "i prefer dark mode",
+    "disable health reminders"
+  ],
+  "tags": ["intelligence", "bayesian", "learning", "preferences", "adaptive"]
+}

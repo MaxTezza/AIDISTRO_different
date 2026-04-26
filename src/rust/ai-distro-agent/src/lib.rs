@@ -248,13 +248,15 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
         handlers::workspace::handle_window_maximize as Handler,
     );
 
-    // UI Hands (Automation)
+    // UI Hands (AT-SPI Semantic Automation + xdotool fallback)
     map.insert("ui_click", handlers::hands::handle_ui_click as Handler);
     map.insert("ui_type", handlers::hands::handle_ui_type as Handler);
     map.insert(
         "ui_shortcut",
         handlers::hands::handle_ui_shortcut as Handler,
     );
+    map.insert("ui_read", handlers::hands::handle_ui_read as Handler);
+    map.insert("ui_list", handlers::hands::handle_ui_list as Handler);
 
     // Display and theme management
     map.insert(
@@ -300,6 +302,7 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
         "proactive_suggestion",
         handle_proactive_suggestion as Handler,
     );
+    map.insert("set_preference", handle_set_preference as Handler);
 
     // Identity and Email
     map.insert(
@@ -311,6 +314,34 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
         handlers::tools::handle_poll_autonomous_mail as Handler,
     );
     map.insert("web_task", handlers::tools::handle_web_task as Handler);
+
+    // Software Forge (code generation & project scaffolding)
+    map.insert(
+        "software_forge_script",
+        handlers::forge::handle_forge_script as Handler,
+    );
+    map.insert(
+        "software_forge_project",
+        handlers::forge::handle_forge_project as Handler,
+    );
+    map.insert(
+        "software_forge_execute",
+        handlers::forge::handle_forge_execute as Handler,
+    );
+    map.insert(
+        "software_forge_generate",
+        handlers::forge::handle_forge_generate as Handler,
+    );
+
+    // Hardware awareness
+    map.insert(
+        "battery_status",
+        handlers::hardware::handle_battery_status as Handler,
+    );
+    map.insert(
+        "hw_info",
+        handlers::hardware::handle_hw_info as Handler,
+    );
 
     map
 }
@@ -334,6 +365,48 @@ pub fn handle_proactive_suggestion(req: &ActionRequest) -> ActionResponse {
         message: Some(msg),
         capabilities: None,
         confirmation_id: None,
+    }
+}
+
+pub fn handle_set_preference(req: &ActionRequest) -> ActionResponse {
+    let payload = req.payload.as_deref().unwrap_or("{}");
+    let (key, value) = if let Ok(val) = serde_json::from_str::<serde_json::Value>(payload) {
+        (
+            val["key"].as_str().unwrap_or("").to_string(),
+            val["value"].as_str().unwrap_or("").to_string(),
+        )
+    } else {
+        return error_response(&req.name, "Invalid preference payload. Use {\"key\": \"...\", \"value\": \"...\"}");
+    };
+
+    if key.is_empty() || value.is_empty() {
+        return error_response(&req.name, "Both key and value are required.");
+    }
+
+    let bayesian_path = std::env::var("AI_DISTRO_BAYESIAN_ENGINE")
+        .unwrap_or_else(|_| {
+            let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+            repo_root.join("tools/agent/bayesian_engine.py").to_string_lossy().to_string()
+        });
+
+    match std::process::Command::new("python3")
+        .arg(&bayesian_path)
+        .arg("set_preference")
+        .arg(&key)
+        .arg(&value)
+        .output()
+    {
+        Ok(out) if out.status.success() => {
+            ActionResponse {
+                version: 1,
+                action: req.name.clone(),
+                status: "ok".to_string(),
+                message: Some(format!("Got it! I've set your preference: {} = {}. I'll remember this.", key, value)),
+                capabilities: None,
+                confirmation_id: None,
+            }
+        }
+        _ => error_response(&req.name, "Failed to save preference."),
     }
 }
 
@@ -408,14 +481,19 @@ pub fn handle_request(
         }
     }
 
-    // Habit Learning (Bayesian)
-    if response.status == "ok" {
-        let curator_path = std::env::var("AI_DISTRO_CURATOR")
-            .unwrap_or_else(|_| "tools/agent/curator.py".to_string());
+    // Bayesian Preference Learning
+    {
+        let outcome = if response.status == "ok" { "positive" } else { "negative" };
+        let bayesian_path = std::env::var("AI_DISTRO_BAYESIAN_ENGINE")
+            .unwrap_or_else(|_| {
+                let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+                repo_root.join("tools/agent/bayesian_engine.py").to_string_lossy().to_string()
+            });
         let _ = std::process::Command::new("python3")
-            .arg(&curator_path)
-            .arg("log_habit")
+            .arg(&bayesian_path)
+            .arg("observe")
             .arg(&request.name)
+            .arg(outcome)
             .spawn();
     }
 

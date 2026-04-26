@@ -1,4 +1,5 @@
 pub mod display;
+pub mod forge;
 pub mod hands;
 pub mod hardware;
 pub mod media;

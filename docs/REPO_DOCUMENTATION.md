@@ -15,13 +15,11 @@ AI Distro is an Ubuntu-based, Pop-like KDE distribution built around a local, vo
 - **ai-distro-voice**: Voice pipeline placeholder (ASR/TTS config wired, but processing is not implemented yet).
 - **ai-distro-shell**: HTTP server + kiosk UI that sends commands to the agent.
 
-## Build and Packaging Flow (Conceptual)
-- `make build-rust` builds Rust binaries.
-- `make stage-deb` stages binaries, configs, and UI into `build/deb-root/`.
-- `make package-deb` wraps staged files into Debian packages.
-- `make rootfs` invokes live-build to produce a squashfs rootfs.
-- `make iso-build` creates the ISO staging directory.
-- `make iso-assemble` produces the final ISO with boot assets if present.
+## Build and Packaging Flow
+- `make build-rust` or `tools/build/build-rust.sh` builds Rust binaries.
+- `bash tools/release/build_iso.sh` configures and builds a live ISO.
+- `tools/build/ci-iso-build.sh` is the GitLab CI entry point.
+- `tools/build/vm-test.sh` runs a QEMU smoke test on the ISO.
 
 ## File Index
 
@@ -100,8 +98,7 @@ AI Distro is an Ubuntu-based, Pop-like KDE distribution built around a local, vo
 
 ### Intent Parsing
 - `tools/agent/intent_parser.py` — Runtime intent parser invoked by the agent.
-- `tools/dev/intent_parser.py` — Dev-only parser used by tests.
-- `tools/dev/test_intent_parser.py` — Simple unit tests for the dev parser.
+- `tools/dev/test_intent_parser.py` — Unit tests for intent parser.
 - `tools/dev/agent-ipc-client.py` — Minimal IPC client for manual testing.
 
 ### ISO and RootFS Build
@@ -174,14 +171,9 @@ AI Distro is an Ubuntu-based, Pop-like KDE distribution built around a local, vo
 
 ### Build Tools
 - `tools/build/build-rust.sh` — Cargo build wrapper.
-- `tools/build/stage-deb.sh` — Stages deb root filesystem.
-- `tools/build/package-deb.sh` — Builds debs from staged files.
-- `tools/build/deps.sh` — Installs build dependencies.
-- `tools/build/rootfs-build.sh` — live-build rootfs orchestration.
-- `tools/build/iso-build.sh` — ISO staging directory build.
-- `tools/build/boot-assets.sh` — GRUB BIOS/UEFI boot assets.
-- `tools/build/iso-assemble.sh` — Final ISO assembly with xorriso.
+- `tools/build/ci-iso-build.sh` — GitLab CI ISO build pipeline.
 - `tools/build/vm-test.sh` — QEMU boot smoke test.
+- `tools/release/build_iso.sh` — Complete live-build ISO builder (Sway desktop, 8 services).
 
 ### Theme Assets
 - `assets/themes/ai-distro/metadata.json` — KDE look-and-feel metadata.
@@ -190,6 +182,6 @@ AI Distro is an Ubuntu-based, Pop-like KDE distribution built around a local, vo
 
 ## Known Scaffolds and Gaps
 - Many docs are empty placeholders and need content.
-- Some infra still has placeholders, but core/voice runtime services are now functional.
-- ISO and rootfs build are wired but still rely on live-build setup and kernel/initrd artifacts.
+- ISO build pipeline is fully functional via `tools/release/build_iso.sh`.
 - Calamares branding assets (logo/background) are not present.
+

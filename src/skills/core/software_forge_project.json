@@ -1,0 +1,23 @@
+{
+  "name": "software_forge_project",
+  "display_name": "Software Forge - Project",
+  "description": "Scaffold a complete software project. Supports Flask web apps, CLI tools, systemd services, and generic Python projects. Say 'build me a web app for tracking expenses'.",
+  "category": "development",
+  "handler": {
+    "type": "rust_native"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {"type": "string", "description": "Project name"},
+      "type": {"type": "string", "enum": ["flask", "cli", "service", "generic"], "description": "Project type"},
+      "description": {"type": "string", "description": "What the project should do"}
+    }
+  },
+  "examples": [
+    "build me a web app for tracking expenses",
+    "create a CLI tool to manage my notes",
+    "make a service that watches for new files"
+  ],
+  "tags": ["development", "project", "scaffolding", "forge"]
+}

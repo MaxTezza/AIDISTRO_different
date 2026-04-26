@@ -3,8 +3,12 @@ FROM rust:slim-bookworm AS builder
 
 WORKDIR /usr/src/ai-distro
 COPY src/rust src/rust
-RUN apt-get update && apt-get install -y pkg-config libssl-dev && \
-    cargo build --release --manifest-path src/rust/Cargo.toml
+RUN apt-get update && apt-get install -y \
+    pkg-config libssl-dev \
+    libasound2-dev \
+    libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgbm-dev \
+    libdbus-1-dev libfontconfig1-dev \
+    && cargo build --release --manifest-path src/rust/Cargo.toml
 
 # --- Final Image Stage ---
 FROM debian:bookworm-slim
@@ -13,9 +17,10 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     xdg-utils \
-    pactl \
+    pulseaudio-utils \
     brightnessctl \
-    nmcli \
+    network-manager \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
