@@ -6,13 +6,13 @@ use ai_distro_common::{ActionRequest, ActionResponse};
 /// Uses the Linux Accessibility Stack to interact with UI elements
 /// semantically (by name/role) rather than by blind coordinate clicking.
 /// Falls back to xdotool automatically when AT-SPI isn't available.
-
 fn atspi_cmd(action: &str, args: &[&str]) -> Result<String, String> {
-    let tools_dir = std::env::var("AI_DISTRO_TOOLS_DIR")
-        .unwrap_or_else(|_| {
-            let home = dirs::home_dir().unwrap_or_default();
-            home.join("AI_Distro/tools/agent").to_string_lossy().to_string()
-        });
+    let tools_dir = std::env::var("AI_DISTRO_TOOLS_DIR").unwrap_or_else(|_| {
+        let home = dirs::home_dir().unwrap_or_default();
+        home.join("AI_Distro/tools/agent")
+            .to_string_lossy()
+            .to_string()
+    });
     let script = format!("{}/atspi_hands.py", tools_dir);
 
     let mut cmd_args = vec![script.as_str(), action];
@@ -94,15 +94,12 @@ pub fn handle_ui_type(req: &ActionRequest) -> ActionResponse {
 
         // Try AT-SPI semantic type
         let atspi_payload = format!("{}|{}", field, text);
-        match atspi_cmd("type", &[&atspi_payload]) {
-            Ok(output) => {
-                let (ok, msg) = parse_atspi_result(&output);
-                if ok {
-                    return ok_response(&req.name, &msg);
-                }
-                log::warn!("AT-SPI type failed: {}. Falling back.", msg);
+        if let Ok(output) = atspi_cmd("type", &[&atspi_payload]) {
+            let (ok, msg) = parse_atspi_result(&output);
+            if ok {
+                return ok_response(&req.name, &msg);
             }
-            Err(_) => {}
+            log::warn!("AT-SPI type failed: {}. Falling back.", msg);
         }
 
         // Fallback: xdotool
@@ -117,14 +114,11 @@ pub fn handle_ui_type(req: &ActionRequest) -> ActionResponse {
         }
     } else {
         // Just type into current focus
-        match atspi_cmd("type", &[payload]) {
-            Ok(output) => {
-                let (ok, msg) = parse_atspi_result(&output);
-                if ok {
-                    return ok_response(&req.name, &msg);
-                }
+        if let Ok(output) = atspi_cmd("type", &[payload]) {
+            let (ok, msg) = parse_atspi_result(&output);
+            if ok {
+                return ok_response(&req.name, &msg);
             }
-            Err(_) => {}
         }
         match run_command("xdotool", &["type", payload], None) {
             Ok(_) => ok_response(&req.name, "Typed text into active field."),

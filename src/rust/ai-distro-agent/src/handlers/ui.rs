@@ -78,7 +78,10 @@ pub fn handle_screen_context(req: &ActionRequest) -> ActionResponse {
             let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
             error_response(&req.name, &format!("Vision analysis failed: {}", err))
         }
-        Err(err) => error_response(&req.name, &format!("Failed to launch vision brain: {}", err)),
+        Err(err) => error_response(
+            &req.name,
+            &format!("Failed to launch vision brain: {}", err),
+        ),
     }
 }
 
@@ -128,7 +131,10 @@ fn is_valid_url(url: &str) -> bool {
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         return false;
     }
-    if url.chars().any(|c| c.is_ascii_control() || c.is_whitespace()) {
+    if url
+        .chars()
+        .any(|c| c.is_ascii_control() || c.is_whitespace())
+    {
         return false;
     }
     true

@@ -338,10 +338,7 @@ pub fn action_registry() -> HashMap<&'static str, Handler> {
         "battery_status",
         handlers::hardware::handle_battery_status as Handler,
     );
-    map.insert(
-        "hw_info",
-        handlers::hardware::handle_hw_info as Handler,
-    );
+    map.insert("hw_info", handlers::hardware::handle_hw_info as Handler);
 
     map
 }
@@ -376,18 +373,23 @@ pub fn handle_set_preference(req: &ActionRequest) -> ActionResponse {
             val["value"].as_str().unwrap_or("").to_string(),
         )
     } else {
-        return error_response(&req.name, "Invalid preference payload. Use {\"key\": \"...\", \"value\": \"...\"}");
+        return error_response(
+            &req.name,
+            "Invalid preference payload. Use {\"key\": \"...\", \"value\": \"...\"}",
+        );
     };
 
     if key.is_empty() || value.is_empty() {
         return error_response(&req.name, "Both key and value are required.");
     }
 
-    let bayesian_path = std::env::var("AI_DISTRO_BAYESIAN_ENGINE")
-        .unwrap_or_else(|_| {
-            let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
-            repo_root.join("tools/agent/bayesian_engine.py").to_string_lossy().to_string()
-        });
+    let bayesian_path = std::env::var("AI_DISTRO_BAYESIAN_ENGINE").unwrap_or_else(|_| {
+        let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        repo_root
+            .join("tools/agent/bayesian_engine.py")
+            .to_string_lossy()
+            .to_string()
+    });
 
     match std::process::Command::new("python3")
         .arg(&bayesian_path)
@@ -396,16 +398,17 @@ pub fn handle_set_preference(req: &ActionRequest) -> ActionResponse {
         .arg(&value)
         .output()
     {
-        Ok(out) if out.status.success() => {
-            ActionResponse {
-                version: 1,
-                action: req.name.clone(),
-                status: "ok".to_string(),
-                message: Some(format!("Got it! I've set your preference: {} = {}. I'll remember this.", key, value)),
-                capabilities: None,
-                confirmation_id: None,
-            }
-        }
+        Ok(out) if out.status.success() => ActionResponse {
+            version: 1,
+            action: req.name.clone(),
+            status: "ok".to_string(),
+            message: Some(format!(
+                "Got it! I've set your preference: {} = {}. I'll remember this.",
+                key, value
+            )),
+            capabilities: None,
+            confirmation_id: None,
+        },
         _ => error_response(&req.name, "Failed to save preference."),
     }
 }
@@ -483,12 +486,18 @@ pub fn handle_request(
 
     // Bayesian Preference Learning
     {
-        let outcome = if response.status == "ok" { "positive" } else { "negative" };
-        let bayesian_path = std::env::var("AI_DISTRO_BAYESIAN_ENGINE")
-            .unwrap_or_else(|_| {
-                let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
-                repo_root.join("tools/agent/bayesian_engine.py").to_string_lossy().to_string()
-            });
+        let outcome = if response.status == "ok" {
+            "positive"
+        } else {
+            "negative"
+        };
+        let bayesian_path = std::env::var("AI_DISTRO_BAYESIAN_ENGINE").unwrap_or_else(|_| {
+            let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+            repo_root
+                .join("tools/agent/bayesian_engine.py")
+                .to_string_lossy()
+                .to_string()
+        });
         let _ = std::process::Command::new("python3")
             .arg(&bayesian_path)
             .arg("observe")

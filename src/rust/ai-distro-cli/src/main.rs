@@ -159,15 +159,21 @@ fn main() {
             println!("  CPUs:   {}", cpu_count);
 
             // Battery (if available)
-            if let Ok(cap) = fs::read_to_string("/sys/class/power_supply/BAT0/capacity") {
-                if let Ok(st) = fs::read_to_string("/sys/class/power_supply/BAT0/status") {
-                    println!("  Battery: {}% ({})", cap.trim(), st.trim());
-                }
+            if let Ok(cap) = fs::read_to_string("/sys/class/power_supply/BAT0/capacity")
+                && let Ok(st) = fs::read_to_string("/sys/class/power_supply/BAT0/status")
+            {
+                println!("  Battery: {}% ({})", cap.trim(), st.trim());
             }
 
-            println!("\n  {} {}/{} services active",
-                if active_count == services.len() { "✔".green() } else { "⚠".yellow() },
-                active_count, services.len()
+            println!(
+                "\n  {} {}/{} services active",
+                if active_count == services.len() {
+                    "✔".green()
+                } else {
+                    "⚠".yellow()
+                },
+                active_count,
+                services.len()
             );
             println!("{}", "═".repeat(40));
         }
@@ -235,16 +241,17 @@ fn main() {
             println!("Press Ctrl+C to stop\n");
 
             // Build a journalctl unit filter for all services
-            let mut args: Vec<String> = vec!["--user".to_string(), "-f".to_string(),
-                format!("--lines={}", lines)];
+            let mut args: Vec<String> = vec![
+                "--user".to_string(),
+                "-f".to_string(),
+                format!("--lines={}", lines),
+            ];
             for svc in services {
                 args.push("-u".to_string());
                 args.push(format!("{}.service", svc));
             }
 
-            let _ = Command::new("journalctl")
-                .args(&args)
-                .status();
+            let _ = Command::new("journalctl").args(&args).status();
         }
         Commands::Update => {
             let home = dirs::home_dir().unwrap_or_default();
@@ -350,7 +357,8 @@ fn main() {
                 if prev_hash != expected_prev_hash {
                     println!(
                         "  {} Line {}: Chain break! Expected prev_hash '{}', got '{}'",
-                        "✘".red(), seq,
+                        "✘".red(),
+                        seq,
                         &expected_prev_hash[..8.min(expected_prev_hash.len())],
                         &prev_hash[..8.min(prev_hash.len())]
                     );
@@ -366,11 +374,22 @@ fn main() {
             if seq == 0 {
                 println!("  {} Audit log is empty.", "⚠".yellow());
             } else if errors == 0 {
-                println!("  {} All {} records verified. Chain is intact.", "✔".green().bold(), seq);
-                println!("  Last hash: {}...", &expected_prev_hash[..16.min(expected_prev_hash.len())]);
+                println!(
+                    "  {} All {} records verified. Chain is intact.",
+                    "✔".green().bold(),
+                    seq
+                );
+                println!(
+                    "  Last hash: {}...",
+                    &expected_prev_hash[..16.min(expected_prev_hash.len())]
+                );
             } else {
-                println!("\n  {} {} errors in {} records. Audit chain is BROKEN.",
-                    "✘".red().bold(), errors, seq);
+                println!(
+                    "\n  {} {} errors in {} records. Audit chain is BROKEN.",
+                    "✘".red().bold(),
+                    errors,
+                    seq
+                );
             }
             println!("\n{}", "═".repeat(40));
         }

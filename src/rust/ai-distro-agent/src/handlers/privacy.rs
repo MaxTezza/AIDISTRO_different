@@ -41,7 +41,7 @@ pub fn handle_privacy_status(req: &ActionRequest) -> ActionResponse {
     }
 
     // Get last 50 events, most recent first
-    events.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    events.sort_by_key(|e| std::cmp::Reverse(e.timestamp));
     events.truncate(50);
 
     // Summarize by type

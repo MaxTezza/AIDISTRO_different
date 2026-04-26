@@ -65,10 +65,7 @@ pub fn handle_forge_project(req: &ActionRequest) -> ActionResponse {
     let (name, project_type, description) = if payload.starts_with('{') {
         match serde_json::from_str::<serde_json::Value>(payload) {
             Ok(v) => (
-                v["name"]
-                    .as_str()
-                    .unwrap_or("my_project")
-                    .to_string(),
+                v["name"].as_str().unwrap_or("my_project").to_string(),
                 v["type"].as_str().unwrap_or("generic").to_string(),
                 v["description"]
                     .as_str()
