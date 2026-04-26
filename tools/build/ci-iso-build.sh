@@ -83,20 +83,22 @@ if command -v genisoimage &>/dev/null || command -v xorriso &>/dev/null; then
       -boot-load-size 4 \
       -boot-info-table \
       -V "AI Distro" \
-      "$ISO_STAGING" || echo "xorriso failed, creating placeholder"
+      "$ISO_STAGING" || { echo "ERROR: xorriso ISO creation failed"; }
   elif command -v genisoimage &>/dev/null; then
     genisoimage -o "$RELEASE_DIR/$ISO_NAME" \
       -V "AI Distro" \
       -J -R \
-      "$ISO_STAGING" || echo "genisoimage failed, creating placeholder"
+      "$ISO_STAGING" || { echo "ERROR: genisoimage ISO creation failed"; }
   fi
 fi
 
-# Ensure something exists for release
+# Verify ISO was created
 if [ ! -f "$RELEASE_DIR/$ISO_NAME" ]; then
-  echo "ISO build incomplete - creating release placeholder"
-  echo "ISO build pending - requires live-build in CI" > "$RELEASE_DIR/iso-placeholder.txt"
+  echo "ERROR: ISO build failed. Required tools (xorriso or genisoimage) are missing or the build encountered errors."
+  echo "Install with: sudo apt-get install xorriso isolinux"
+  exit 1
 fi
 
 echo "=== Build Complete ==="
-ls -la "$RELEASE_DIR/" 2>/dev/null || echo "Release directory empty"
+echo "ISO: $RELEASE_DIR/$ISO_NAME"
+ls -lh "$RELEASE_DIR/$ISO_NAME"

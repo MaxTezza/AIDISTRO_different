@@ -100,14 +100,66 @@ def cmd_search(m, folder, query):
     return format_lines(rows, f"Email search '{q}'")
 
 
+def smtp_cfg():
+    """Load SMTP config from environment (paired with IMAP credentials)."""
+    return {
+        "host": os.environ.get("AI_DISTRO_SMTP_HOST", "").strip(),
+        "port": int(os.environ.get("AI_DISTRO_SMTP_PORT", "587")),
+        "username": os.environ.get(
+            "AI_DISTRO_SMTP_USERNAME",
+            os.environ.get("AI_DISTRO_IMAP_USERNAME", ""),
+        ).strip(),
+        "password": os.environ.get(
+            "AI_DISTRO_SMTP_PASSWORD",
+            os.environ.get("AI_DISTRO_IMAP_PASSWORD", ""),
+        ).strip(),
+    }
+
+
+def cmd_draft(query):
+    """Send an email via SMTP. Payload format: to|subject|body"""
+    parts = [p.strip() for p in (query or "").split("|")]
+    if len(parts) < 3 or not parts[0] or not parts[1]:
+        return "Invalid draft payload. Format: to@addr|subject|body"
+
+    to_addr, subject, body = parts[0], parts[1], parts[2]
+    sc = smtp_cfg()
+    if not sc["host"] or not sc["username"] or not sc["password"]:
+        return "SMTP is not configured. Set AI_DISTRO_SMTP_HOST, _USERNAME, _PASSWORD."
+
+    from email.mime.text import MIMEText
+    import smtplib
+
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"] = subject
+    msg["From"] = sc["username"]
+    msg["To"] = to_addr
+
+    try:
+        if sc["port"] == 465:
+            server = smtplib.SMTP_SSL(sc["host"], sc["port"], timeout=10)
+        else:
+            server = smtplib.SMTP(sc["host"], sc["port"], timeout=10)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+        server.login(sc["username"], sc["password"])
+        server.sendmail(sc["username"], [to_addr], msg.as_string())
+        server.quit()
+        return f"Email sent to {to_addr} with subject '{subject}'."
+    except Exception as e:
+        return f"SMTP send failed: {e}"
+
+
 def main():
     if len(sys.argv) < 2:
         print("usage: email_imap_tool.py summary|search|draft [query]")
         return 2
     cmd = sys.argv[1].strip().lower()
     query = " ".join(sys.argv[2:]) if len(sys.argv) > 2 else ""
+
     if cmd == "draft":
-        print("IMAP draft is not enabled yet.")
+        print(cmd_draft(query))
         return 0
 
     c = cfg()

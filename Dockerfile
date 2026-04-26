@@ -38,7 +38,20 @@ COPY configs /etc/ai-distro
 COPY requirements.txt /app/
 
 # Install dependencies and download model
-RUN pip3 install -r /app/requirements.txt --break-system-packages
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    python3-dev \
+    libdbus-1-dev \
+    libglib2.0-dev \
+    libcairo2-dev \
+    libgirepository1.0-dev \
+    portaudio19-dev \
+    libasound2-dev \
+    && pip3 install -r /app/requirements.txt --break-system-packages \
+    && apt-get remove -y build-essential cmake pkg-config python3-dev libdbus-1-dev libglib2.0-dev libcairo2-dev libgirepository1.0-dev portaudio19-dev libasound2-dev \
+    && rm -rf /var/lib/apt/lists/*
 RUN python3 /app/tools/agent/download_model.py
 
 # Set default env

@@ -183,8 +183,21 @@ def create_script(name, description, language="python", code=None):
     if not code:
         code = generate_code_with_llm(description, language)
         if not code:
-            # Fallback: use template with placeholder
-            body = f'print("TODO: {description}")'
+            # Fallback: generate a minimal functional script when LLM is unavailable
+            body = (
+                f'import sys\n'
+                f'\n'
+                f'def main():\n'
+                f'    """Entry point for {name}: {description}"""\n'
+                f'    print(f"{{__file__}} is running.")\n'
+                f'    print(f"Arguments: {{sys.argv[1:]}}")\n'
+                f'    # Implement: {description}\n'
+                f'    print("LLM was unavailable during generation. Edit this script to add logic.")\n'
+                f'    return 0\n'
+                f'\n'
+                f'if __name__ == "__main__":\n'
+                f'    raise SystemExit(main())\n'
+            )
             code = TEMPLATES["script"][language].format(
                 name=name, description=description, body=body
             )
