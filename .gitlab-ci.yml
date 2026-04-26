@@ -16,6 +16,7 @@ variables:
 
 .rust-deps:
   before_script:
+    - rustup component add clippy rustfmt
     - apt-get update && apt-get install -y libasound2-dev pkg-config libatspi2.0-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgbm-dev libdbus-1-dev libfontconfig1-dev libssl-dev xvfb
 
 lint-rust:
@@ -33,11 +34,12 @@ lint-python:
   stage: lint
   image: python:3.11
   before_script:
-    - apt-get update && apt-get install -y libdbus-1-dev libgirepository1.0-dev portaudio19-dev pkg-config
+    - apt-get update && apt-get install -y libdbus-1-dev libgirepository1.0-dev libgirepository-2.0-dev gobject-introspection libcairo2-dev portaudio19-dev pkg-config meson ninja-build
   script:
     - pip install ruff
     - ruff check .
-    - pip install --upgrade pip setuptools wheel
+    - pip install --upgrade pip setuptools wheel meson-python meson ninja
+    - pip install pycairo
     - pip install -r requirements.txt
 
 test-rust:
