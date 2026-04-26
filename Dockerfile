@@ -47,12 +47,19 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-dev \
     libcairo2-dev \
     libgirepository1.0-dev \
+    gobject-introspection \
+    meson \
+    ninja-build \
     portaudio19-dev \
     libasound2-dev \
+    && pip3 install --upgrade pip setuptools wheel meson-python meson ninja --break-system-packages \
+    && pip3 install pycairo --break-system-packages \
     && pip3 install -r /app/requirements.txt --break-system-packages \
-    && apt-get remove -y build-essential cmake pkg-config python3-dev libdbus-1-dev libglib2.0-dev libcairo2-dev libgirepository1.0-dev portaudio19-dev libasound2-dev \
+    && apt-get remove -y build-essential cmake pkg-config python3-dev libdbus-1-dev libglib2.0-dev libcairo2-dev libgirepository1.0-dev gobject-introspection meson ninja-build portaudio19-dev libasound2-dev \
+    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
-RUN python3 /app/tools/agent/download_model.py
+# Download model (optional in CI - will download on first run if skipped)
+RUN python3 /app/tools/agent/download_model.py || echo "Model download skipped (will download on first run)"
 
 # Set default env
 ENV AI_DISTRO_IPC_SOCKET=/tmp/ai-distro-agent.sock
