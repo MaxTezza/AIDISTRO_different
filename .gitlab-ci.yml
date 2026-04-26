@@ -14,7 +14,6 @@ variables:
 
 lint-rust:
   stage: lint
-  tags: [local]
   extends:
     - .rust-cache
   before_script:
@@ -26,14 +25,12 @@ lint-rust:
 
 lint-python:
   stage: lint
-  tags: [local]
   script:
     - python3 -m pip install ruff --break-system-packages -q 2>/dev/null || pip install ruff -q
     - ruff check .
 
 test-rust:
   stage: lint
-  tags: [local]
   extends:
     - .rust-cache
   allow_failure: true
@@ -43,7 +40,6 @@ test-rust:
 
 build-rust:
   stage: build
-  tags: [local]
   extends:
     - .rust-cache
   artifacts:
@@ -59,7 +55,6 @@ build-rust:
 
 build-docker:
   stage: build
-  tags: [local]
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
