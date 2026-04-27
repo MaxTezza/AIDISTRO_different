@@ -7,6 +7,6 @@
   "asr_model": "vosk",
   "tts_model": "piper",
   "audio_device": "default",
-  "asr_binary": "/usr/bin/vosk-server",
-  "tts_binary": "/usr/bin/piper"
+  "asr_binary": "",
+  "tts_binary": ""
 }

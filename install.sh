@@ -46,6 +46,13 @@ pip install -q \
     moondream watchdog pypdf python-magic playwright \
     python-telegram-bot opencv-python psutil \
     2>/dev/null || true
+# Install llama-cpp-python (pre-built wheel avoids needing cmake/gcc)
+pip install -q llama-cpp-python 2>/dev/null || {
+    echo "  ⚠ llama-cpp-python failed. Trying pre-built wheel..."
+    pip install -q llama-cpp-python \
+        --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu 2>/dev/null || \
+        echo "  ⚠ llama-cpp-python install failed (LLM will use cloud fallback)"
+}
 playwright install chromium 2>/dev/null || echo "  ⚠ Playwright chromium install failed (non-critical)"
 echo "  ✔ Python environment ready"
 
@@ -88,6 +95,45 @@ else
     echo "  ✔ Piper TTS already present"
 fi
 
+# Vosk Speech-to-Text Model
+VOSK_MODEL_DIR="${CACHE_DIR}/vosk"
+if [ ! -d "$VOSK_MODEL_DIR/model" ]; then
+    echo "  ↓ Downloading Vosk STT model (~50MB)..."
+    mkdir -p "$VOSK_MODEL_DIR"
+    cd "$VOSK_MODEL_DIR"
+    curl -L --progress-bar -o vosk-model-small-en-us.zip \
+        "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
+    unzip -qo vosk-model-small-en-us.zip
+    mv vosk-model-small-en-us-0.15 model 2>/dev/null || true
+    rm -f vosk-model-small-en-us.zip
+    cd "$ROOT_DIR"
+    pip install -q vosk 2>/dev/null || echo "  ⚠ vosk Python package install failed"
+else
+    echo "  ✔ Vosk STT model already present"
+fi
+
+# Moondream2 Vision Language Model
+# vision_brain.py loads via: md.vl(model="moondream-latest.bit6.4.whl")
+# The moondream package handles its own model caching internally.
+MOONDREAM_MARKER="$CACHE_DIR/moondream_downloaded"
+if [ ! -f "$MOONDREAM_MARKER" ]; then
+    echo "  ↓ Downloading Moondream2 VLM (first run will cache ~1.5GB)..."
+    # Remove old stub file if it exists
+    rm -f "$MODEL_DIR/moondream-2b-int8.gguf" 2>/dev/null
+    pip install -q moondream 2>/dev/null || true
+    # Trigger model download so the first real request isn't slow
+    "$ROOT_DIR/.venv/bin/python3" -c "
+import moondream as md
+try:
+    model = md.vl(model='moondream-latest.bit6.4.whl')
+    print('Moondream2 model cached successfully')
+except Exception as e:
+    print(f'Moondream preload: {e} (will download on first use)')
+" 2>/dev/null && touch "$MOONDREAM_MARKER" || echo "  ⚠ Moondream2 preload failed (will download on first vision request)"
+else
+    echo "  ✔ Moondream2 VLM already downloaded"
+fi
+
 # ── 4. Build Rust Core ─────────────────────────────────────────────────
 echo "[4/8] Compiling Rust Core (Agent, Voice, HUD, CLI)..."
 cd "$ROOT_DIR/src/rust"
@@ -126,7 +172,11 @@ done
 # Install Python tools to lib directory
 sudo mkdir -p "$LIB_DIR"
 sudo cp -r "$ROOT_DIR/tools/agent/"*.py "$LIB_DIR/" 2>/dev/null || true
-echo "  ✔ Python tools installed to $LIB_DIR"
+# Install voice tools (ASR wrapper)
+sudo mkdir -p "$LIB_DIR/voice"
+sudo cp -r "$ROOT_DIR/tools/voice/"* "$LIB_DIR/voice/" 2>/dev/null || true
+sudo chmod +x "$LIB_DIR/voice/vosk_asr" 2>/dev/null || true
+echo "  ✔ Python tools + voice tools installed to $LIB_DIR"
 
 # Create Spirit Bridge config template
 SPIRIT_CONFIG="${HOME}/.config/ai-distro-spirit.json"
@@ -177,6 +227,28 @@ RestartSec=2
 Environment=AI_DISTRO_IPC_SOCKET=%t/ai-distro/agent.sock
 Environment=AI_DISTRO_TTS_BINARY=${PIPER_DIR}/piper/piper
 Environment=AI_DISTRO_TTS_MODEL=${PIPER_DIR}/en_US-amy-medium.onnx
+Environment=AI_DISTRO_ASR_BINARY=${ROOT_DIR}/tools/voice/vosk_asr
+Environment=VOSK_MODEL_PATH=${CACHE_DIR}/vosk/model
+
+[Install]
+WantedBy=default.target
+EOF
+
+# WebSocket Bridge Service (Agent Unix Socket → HUD WebSocket)
+cat > "$SYSTEMD_USER_DIR/ai-distro-wsbridge.service" << EOF
+[Unit]
+Description=AI Distro WebSocket Bridge — Event Relay for HUD
+After=ai-distro-agent.service
+Requires=ai-distro-agent.service
+
+[Service]
+Type=simple
+ExecStart=${ROOT_DIR}/.venv/bin/python3 ${ROOT_DIR}/tools/agent/ws_bridge.py
+Restart=on-failure
+RestartSec=3
+Environment=AI_DISTRO_EVENT_SOCKET=/tmp/ai-distro-events.sock
+Environment=AI_DISTRO_WS_PORT=5001
+WorkingDirectory=${ROOT_DIR}
 
 [Install]
 WantedBy=default.target
@@ -186,8 +258,8 @@ EOF
 cat > "$SYSTEMD_USER_DIR/ai-distro-hud.service" << EOF
 [Unit]
 Description=AI Distro HUD — Desktop Overlay
-After=graphical-session.target ai-distro-agent.service
-Requires=ai-distro-agent.service
+After=graphical-session.target ai-distro-wsbridge.service
+Requires=ai-distro-wsbridge.service
 
 [Service]
 Type=simple
@@ -298,7 +370,7 @@ WantedBy=default.target
 EOF
 
 systemctl --user daemon-reload
-echo "  ✔ All 8 systemd user services installed"
+echo "  ✔ All 9 systemd user services installed"
 
 # ── 8. Create Directories & Finalize ──────────────────────────────────
 echo "[8/8] Creating runtime directories..."

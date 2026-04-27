@@ -93,6 +93,7 @@ fn main() {
     let cli = Cli::parse();
     let services = [
         "ai-distro-agent",
+        "ai-distro-wsbridge",
         "ai-distro-voice",
         "ai-distro-hud",
         "ai-distro-curator",

@@ -60,7 +60,14 @@ def main():
     token = load_token()
     if not token:
         print("Spirit Bridge: No token found in ~/.config/ai-distro-spirit.json")
-        sys.exit(1)
+        print("Spirit Bridge: Sleeping until configured. Set 'token' in the config and restart.")
+        # Sleep instead of exiting — prevents systemd restart loop
+        import time
+        while True:
+            time.sleep(3600)  # Check hourly
+            token = load_token()
+            if token:
+                break
 
     print("Spirit Bridge: Connecting to the cloud...")
     app = ApplicationBuilder().token(token).build()

@@ -78,8 +78,9 @@ def send_to_agent(action_name, payload=None):
 def check_services():
     """Monitor AI Distro service health and restart crashed ones."""
     services = [
-        "ai-distro-agent", "ai-distro-voice", "ai-distro-hud",
-        "ai-distro-curator", "ai-distro-spirit", "ai-distro-hardware",
+        "ai-distro-agent", "ai-distro-wsbridge", "ai-distro-voice",
+        "ai-distro-hud", "ai-distro-curator", "ai-distro-spirit",
+        "ai-distro-hardware",
     ]
 
     for svc in services:

@@ -1,0 +1,5 @@
+#!/bin/bash
+# vosk_asr — Shell wrapper so the Rust voice engine can call a single binary.
+# Delegates to the Python Vosk ASR script.
+# Reads WAV from stdin, outputs text to stdout.
+exec "$(dirname "$0")/../../.venv/bin/python3" "$(dirname "$0")/vosk_asr.py" "$@"

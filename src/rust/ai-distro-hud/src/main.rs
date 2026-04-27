@@ -146,24 +146,42 @@ fn main() -> Result<(), eframe::Error> {
             .unwrap();
         rt.block_on(async {
             let url = "ws://127.0.0.1:5001";
-            if let Ok((mut ws_stream, _)) = connect_async(url).await {
-                while let Some(msg) = ws_stream.next().await {
-                    let Ok(tokio_tungstenite::tungstenite::Message::Text(text)) = msg else {
-                        continue;
-                    };
-                    let Ok(event) = serde_json::from_str::<AiEvent>(&text) else {
-                        continue;
-                    };
+            let mut backoff_secs = 1u64;
+            loop {
+                eprintln!("HUD: Connecting to WebSocket bridge at {}...", url);
+                match connect_async(url).await {
+                    Ok((mut ws_stream, _)) => {
+                        eprintln!("HUD: Connected to WebSocket bridge.");
+                        backoff_secs = 1; // Reset backoff on success
+                        while let Some(msg) = ws_stream.next().await {
+                            let Ok(tokio_tungstenite::tungstenite::Message::Text(text)) = msg
+                            else {
+                                continue;
+                            };
+                            let Ok(event) = serde_json::from_str::<AiEvent>(&text) else {
+                                continue;
+                            };
 
-                    let mut c = cards_clone.lock().unwrap();
-                    if event.event_type == "highlight" {
-                        c.retain(|e| e.event_type != "highlight");
+                            let mut c = cards_clone.lock().unwrap();
+                            if event.event_type == "highlight" {
+                                c.retain(|e| e.event_type != "highlight");
+                            }
+                            c.push(event);
+                            if c.len() > 30 {
+                                c.remove(0);
+                            }
+                        }
+                        eprintln!("HUD: WebSocket connection closed. Reconnecting...");
                     }
-                    c.push(event);
-                    if c.len() > 30 {
-                        c.remove(0);
+                    Err(e) => {
+                        eprintln!(
+                            "HUD: WebSocket connection failed: {}. Retrying in {}s...",
+                            e, backoff_secs
+                        );
                     }
                 }
+                tokio::time::sleep(tokio::time::Duration::from_secs(backoff_secs)).await;
+                backoff_secs = (backoff_secs * 2).min(30); // Exponential backoff, cap at 30s
             }
         });
     });

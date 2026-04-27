@@ -122,10 +122,20 @@ def get_cloud_response(config, system_prompt, user_input):
 def get_llama(config):
     try:
         from llama_cpp import Llama
-        model_name = config.get("intelligence", {}).get("local_model", "llama-3.2-1b-instruct.gguf")
+        model_name = config.get("intelligence", {}).get("local_model", "llama-3.2-3b-instruct.gguf")
         model_path = MODEL_DIR / model_name
+        
+        # If configured model doesn't exist, try any available .gguf file
         if not model_path.exists():
-            model_path = MODEL_DIR / "llama-3.2-1b-instruct.gguf"
+            available = sorted(MODEL_DIR.glob("*.gguf"), key=lambda p: p.stat().st_size, reverse=True)
+            # Pick the largest model available (likely most capable)
+            available = [m for m in available if m.stat().st_size > 1_000_000]  # Skip stubs
+            if available:
+                model_path = available[0]
+                print(f"[Brain] Configured model not found, using {model_path.name}", file=sys.stderr)
+            else:
+                return None
+        
         return Llama(model_path=str(model_path), n_ctx=2048, verbose=False)
     except Exception:
         return None
@@ -180,7 +190,19 @@ def main():
     if not result:
         llm = get_llama(config)
         if not llm:
-            sys.exit(1)
+            # Graceful degradation: return a helpful response instead of crashing
+            fallback = {
+                "version": 1,
+                "name": "natural_language",
+                "payload": json.dumps({
+                    "message": f"I heard you say: \"{user_input}\". "
+                               "My local LLM isn't loaded yet (model may still be downloading). "
+                               "Try 'ai-distro intelligence mode cloud' with an API key, "
+                               "or wait for the model download to finish."
+                })
+            }
+            print(json.dumps(fallback))
+            return
         response = llm.create_chat_completion(
             messages=[
                 {"role": "system", "content": system_prompt},
