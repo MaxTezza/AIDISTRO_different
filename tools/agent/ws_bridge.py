@@ -20,8 +20,18 @@ try:
     import websockets
     from websockets.asyncio.server import serve
 except ImportError:
+    import time
     print("ws_bridge: websockets package not installed. Run: pip install websockets")
-    sys.exit(1)
+    print("ws_bridge: Sleeping and retrying every 5 minutes...")
+    while True:
+        time.sleep(300)
+        try:
+            import websockets  # noqa: F811
+            from websockets.asyncio.server import serve  # noqa: F811
+            print("ws_bridge: websockets found! Starting...")
+            break
+        except ImportError:
+            continue
 
 EVENT_SOCKET = os.environ.get("AI_DISTRO_EVENT_SOCKET", "/tmp/ai-distro-events.sock")
 WS_HOST = os.environ.get("AI_DISTRO_WS_HOST", "127.0.0.1")
@@ -70,6 +80,11 @@ async def unix_socket_listener():
             os.unlink(EVENT_SOCKET)
         except OSError:
             pass
+
+    # Ensure parent directory exists
+    socket_dir = os.path.dirname(EVENT_SOCKET)
+    if socket_dir:
+        os.makedirs(socket_dir, exist_ok=True)
 
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(EVENT_SOCKET)
