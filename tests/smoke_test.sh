@@ -131,6 +131,10 @@ done
 echo ""
 echo -e "${CYAN}[5/7] Testing IPC communication (requires agent running)...${NC}"
 SOCKET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/ai-distro/agent.sock"
+# Agent may also bind to /tmp
+if [ ! -S "$SOCKET" ] && [ -S "/tmp/ai-distro-agent.sock" ]; then
+    SOCKET="/tmp/ai-distro-agent.sock"
+fi
 if [ -S "$SOCKET" ]; then
     pass "Agent socket exists at $SOCKET"
 
