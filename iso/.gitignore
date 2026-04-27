@@ -1,0 +1,5 @@
+# ISO build artifacts
+build/
+*.iso
+*.log
+*.hybrid.iso
