@@ -135,6 +135,8 @@ libdbus-1-dev
 alsa-utils
 sudo
 locales
+socat
+unzip
 PKGLIST
 
 # Firmware for common laptop hardware
@@ -182,6 +184,16 @@ update-locale LANG=en_US.UTF-8
 HOOK
 chmod +x config/hooks/live/0050-locale.hook.chroot
 
+# Hook: Install Rust toolchain for the pilot user
+cat > config/hooks/live/0150-install-rust.hook.chroot <<'HOOK'
+#!/bin/bash
+set -e
+# Install Rust for pilot user (needed by install.sh to compile the agent)
+su - pilot -c 'curl --proto =https --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal'
+echo '[ISO] Rust toolchain installed for pilot'
+HOOK
+chmod +x config/hooks/live/0150-install-rust.hook.chroot
+
 # ── Copy AI Distro source into the image ─────────────────────────────
 echo "[5/6] Embedding AI Distro source..."
 mkdir -p config/includes.chroot/home/pilot/AI_Distro
@@ -190,6 +202,18 @@ mkdir -p config/includes.chroot/home/pilot/AI_Distro
 rsync -a --exclude='.git' --exclude='target' --exclude='.venv' \
     --exclude='iso/build' --exclude='__pycache__' \
     "$ROOT_DIR/" config/includes.chroot/home/pilot/AI_Distro/
+
+# Also bundle pre-compiled binaries so first boot can skip compile if paths match
+if [ -d "$ROOT_DIR/src/rust/target/release" ]; then
+    mkdir -p config/includes.chroot/home/pilot/AI_Distro/src/rust/target/release
+    for bin in ai-distro-agent ai-distro-cli ai-distro-core ai-distro-voice ai-distro-hud; do
+        if [ -f "$ROOT_DIR/src/rust/target/release/$bin" ]; then
+            cp "$ROOT_DIR/src/rust/target/release/$bin" \
+                config/includes.chroot/home/pilot/AI_Distro/src/rust/target/release/
+            echo "  ✔ Pre-bundled binary: $bin"
+        fi
+    done
+fi
 
 # Create first-boot setup script
 mkdir -p config/includes.chroot/etc/xdg/autostart

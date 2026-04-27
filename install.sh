@@ -26,7 +26,7 @@ sudo apt-get install -y -qq \
     wmctrl xdotool libatspi2.0-dev \
     python3-pip python3-venv \
     pulseaudio-utils network-manager \
-    feh mpv jq curl wget \
+    feh mpv jq curl wget unzip socat \
     libdbus-1-dev \
     2>/dev/null
 echo "  ✔ System dependencies installed"
@@ -136,10 +136,35 @@ fi
 
 # ── 4. Build Rust Core ─────────────────────────────────────────────────
 echo "[4/8] Compiling Rust Core (Agent, Voice, HUD, CLI)..."
-cd "$ROOT_DIR/src/rust"
-cargo build --release 2>&1 | tail -5
-cd "$ROOT_DIR"
-echo "  ✔ Rust binaries compiled"
+
+# Check if pre-compiled binaries already exist (e.g., bundled in ISO)
+BINS_EXIST=true
+for bin in ai-distro-agent ai-distro-cli ai-distro-core ai-distro-voice ai-distro-hud; do
+    if [ ! -f "$ROOT_DIR/src/rust/target/release/$bin" ]; then
+        BINS_EXIST=false
+        break
+    fi
+done
+
+if [ "$BINS_EXIST" = true ]; then
+    echo "  ✔ Pre-compiled binaries found — skipping build"
+else
+    # Ensure Rust is installed
+    if ! command -v cargo &>/dev/null; then
+        if [ -f "$HOME/.cargo/env" ]; then
+            source "$HOME/.cargo/env"
+        fi
+    fi
+    if ! command -v cargo &>/dev/null; then
+        echo "  ↓ Installing Rust toolchain (one-time)..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+        source "$HOME/.cargo/env"
+    fi
+    cd "$ROOT_DIR/src/rust"
+    cargo build --release 2>&1 | tail -5
+    cd "$ROOT_DIR"
+    echo "  ✔ Rust binaries compiled"
+fi
 
 # ── 5. Install Binaries ───────────────────────────────────────────────
 echo "[5/8] Installing binaries to ${INSTALL_PREFIX}/bin/..."
