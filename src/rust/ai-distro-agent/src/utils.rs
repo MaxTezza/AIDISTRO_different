@@ -1,6 +1,25 @@
 use ai_distro_common::ActionResponse;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+/// Resolve the project's venv Python, falling back to system python3.
+/// Same logic as the CLI's get_python() helper.
+pub fn resolve_venv_python() -> PathBuf {
+    // Check relative to the repo root (CARGO_MANIFEST_DIR is src/rust/ai-distro-agent)
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let venv = repo_root.join(".venv/bin/python3");
+    if venv.exists() {
+        return venv;
+    }
+    // Also check ~/AI_Distro
+    if let Some(home) = dirs::home_dir() {
+        let venv = home.join("AI_Distro/.venv/bin/python3");
+        if venv.exists() {
+            return venv;
+        }
+    }
+    PathBuf::from("python3")
+}
 
 pub fn resolve_python_tool(env_var: &str, filename: &str) -> String {
     if let Ok(value) = std::env::var(env_var) {

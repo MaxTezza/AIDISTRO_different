@@ -9,7 +9,7 @@ pub fn handle_remember(req: &ActionRequest) -> ActionResponse {
 
     let engine = resolve_python_tool("AI_DISTRO_MEMORY_ENGINE", "memory_engine.py");
 
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(&engine)
         .arg("remember")
         .arg(note)
@@ -24,7 +24,7 @@ pub fn handle_read_context(req: &ActionRequest) -> ActionResponse {
     let query = req.payload.as_deref().unwrap_or("current context");
     let engine = resolve_python_tool("AI_DISTRO_MEMORY_ENGINE", "memory_engine.py");
 
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(&engine)
         .arg("query")
         .arg(query)

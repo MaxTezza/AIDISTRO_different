@@ -57,7 +57,7 @@ pub fn handle_screen_context(req: &ActionRequest) -> ActionResponse {
     }
 
     // 2. Run Vision Analysis
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(&vision_script)
         .arg(screenshot_path)
         .arg(req.payload.as_deref().unwrap_or("What do you see?"))
@@ -92,7 +92,7 @@ pub fn handle_launch_app_semantic(req: &ActionRequest) -> ActionResponse {
 
     let script = resolve_python_tool("AI_DISTRO_SEMANTIC_LAUNCHER", "semantic_launcher.py");
 
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(&script)
         .arg("launch")
         .arg(query)

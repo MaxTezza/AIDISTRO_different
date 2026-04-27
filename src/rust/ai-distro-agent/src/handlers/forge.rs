@@ -35,7 +35,7 @@ pub fn handle_forge_script(req: &ActionRequest) -> ActionResponse {
     };
 
     let tool = resolve_python_tool("AI_DISTRO_SOFTWARE_FORGE", "software_forge.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(&tool)
         .arg("create_script")
         .arg(&name)
@@ -87,7 +87,7 @@ pub fn handle_forge_project(req: &ActionRequest) -> ActionResponse {
     };
 
     let tool = resolve_python_tool("AI_DISTRO_SOFTWARE_FORGE", "software_forge.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(&tool)
         .arg("create_project")
         .arg(&name)
@@ -118,7 +118,7 @@ pub fn handle_forge_execute(req: &ActionRequest) -> ActionResponse {
     }
 
     let tool = resolve_python_tool("AI_DISTRO_SOFTWARE_FORGE", "software_forge.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(&tool)
         .arg("execute")
         .arg(payload)
@@ -147,7 +147,7 @@ pub fn handle_forge_generate(req: &ActionRequest) -> ActionResponse {
     }
 
     let tool = resolve_python_tool("AI_DISTRO_SOFTWARE_FORGE", "software_forge.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(&tool)
         .arg("generate")
         .arg(payload)

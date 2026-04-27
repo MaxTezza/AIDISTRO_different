@@ -92,7 +92,7 @@ pub fn handle_import_legacy_data(req: &ActionRequest) -> ActionResponse {
     let tool = resolve_python_tool("AI_DISTRO_LEGACY_IMPORTER", "legacy_importer.py");
 
     // Run asynchronously
-    let _ = Command::new("python3").arg(tool).arg(path).spawn();
+    let _ = Command::new(crate::utils::resolve_venv_python()).arg(tool).arg(path).spawn();
     ok_response(&req.name, &format!("I've started the Great Migration from {}. I will let you know as I find interesting things.", path))
 }
 
@@ -100,7 +100,7 @@ pub fn handle_system_heal(req: &ActionRequest) -> ActionResponse {
     let tool = resolve_python_tool("AI_DISTRO_SYSTEM_HEALER", "system_healer.py");
 
     // Check one time
-    match Command::new("python3").arg(tool).arg("check_now").output() {
+    match Command::new(crate::utils::resolve_venv_python()).arg(tool).arg("check_now").output() {
         Ok(_) => ok_response(
             &req.name,
             "I've performed a health check and applied any necessary repairs.",

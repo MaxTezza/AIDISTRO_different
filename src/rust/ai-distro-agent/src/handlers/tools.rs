@@ -5,7 +5,7 @@ use std::process::Command;
 pub fn handle_plan_day_outfit(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("today");
     let planner = resolve_python_tool("AI_DISTRO_DAY_PLANNER", "day_planner.py");
-    match Command::new("python3").arg(planner).arg(payload).output() {
+    match Command::new(crate::utils::resolve_venv_python()).arg(planner).arg(payload).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if msg.is_empty() {
@@ -32,7 +32,7 @@ pub fn handle_plan_day_outfit(req: &ActionRequest) -> ActionResponse {
 pub fn handle_weather_get(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("today");
     let tool = resolve_python_tool("AI_DISTRO_WEATHER_TOOL", "weather_router.py");
-    match Command::new("python3").arg(tool).arg(payload).output() {
+    match Command::new(crate::utils::resolve_venv_python()).arg(tool).arg(payload).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if msg.is_empty() {
@@ -57,7 +57,7 @@ pub fn handle_calendar_add_event(req: &ActionRequest) -> ActionResponse {
         return error_response(&req.name, "missing calendar payload");
     };
     let tool = resolve_python_tool("AI_DISTRO_CALENDAR_ROUTER", "calendar_router.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(tool)
         .arg("add")
         .arg(payload)
@@ -88,7 +88,7 @@ pub fn handle_calendar_add_event(req: &ActionRequest) -> ActionResponse {
 pub fn handle_calendar_list_day(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("today");
     let tool = resolve_python_tool("AI_DISTRO_CALENDAR_ROUTER", "calendar_router.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(tool)
         .arg("list")
         .arg(payload)
@@ -119,7 +119,7 @@ pub fn handle_calendar_list_day(req: &ActionRequest) -> ActionResponse {
 pub fn handle_email_inbox_summary(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("in:inbox newer_than:2d");
     let tool = resolve_python_tool("AI_DISTRO_EMAIL_ROUTER", "email_router.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(tool)
         .arg("summary")
         .arg(payload)
@@ -150,7 +150,7 @@ pub fn handle_email_inbox_summary(req: &ActionRequest) -> ActionResponse {
 pub fn handle_email_search(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("in:inbox");
     let tool = resolve_python_tool("AI_DISTRO_EMAIL_ROUTER", "email_router.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(tool)
         .arg("search")
         .arg(payload)
@@ -183,7 +183,7 @@ pub fn handle_email_draft(req: &ActionRequest) -> ActionResponse {
         return error_response(&req.name, "missing draft payload");
     };
     let tool = resolve_python_tool("AI_DISTRO_EMAIL_ROUTER", "email_router.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(tool)
         .arg("draft")
         .arg(payload)
@@ -213,7 +213,7 @@ pub fn handle_email_draft(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_get_autonomous_address(req: &ActionRequest) -> ActionResponse {
     let tool = resolve_python_tool("AI_DISTRO_IDENTITY_TOOL", "autonomous_identity_tool.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(tool)
         .arg("get_address")
         .output()
@@ -228,7 +228,7 @@ pub fn handle_get_autonomous_address(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_poll_autonomous_mail(req: &ActionRequest) -> ActionResponse {
     let tool = resolve_python_tool("AI_DISTRO_IDENTITY_TOOL", "autonomous_identity_tool.py");
-    match Command::new("python3").arg(tool).arg("poll").output() {
+    match Command::new(crate::utils::resolve_venv_python()).arg(tool).arg("poll").output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             ok_response(&req.name, &msg)
@@ -248,7 +248,7 @@ pub fn handle_web_task(req: &ActionRequest) -> ActionResponse {
     let goal = parts[1..].join("|");
 
     let tool = resolve_python_tool("AI_DISTRO_WEB_NAVIGATOR", "web_navigator.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(tool)
         .arg(url)
         .arg(goal)
@@ -269,7 +269,7 @@ pub fn handle_player_control(req: &ActionRequest) -> ActionResponse {
     let target = if parts.len() > 1 { parts[1] } else { "" };
 
     let tool = resolve_python_tool("AI_DISTRO_PLAYER_TOOL", "player_control.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(tool)
         .arg(cmd)
         .arg(target)
@@ -286,7 +286,7 @@ pub fn handle_player_control(req: &ActionRequest) -> ActionResponse {
 pub fn handle_gallery_show(req: &ActionRequest) -> ActionResponse {
     let folder = req.payload.as_deref().unwrap_or("");
     let tool = resolve_python_tool("AI_DISTRO_GALLERY_TOOL", "gallery_show.py");
-    match Command::new("python3").arg(tool).arg(folder).output() {
+    match Command::new(crate::utils::resolve_venv_python()).arg(tool).arg(folder).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             ok_response(&req.name, &msg)
@@ -297,7 +297,7 @@ pub fn handle_gallery_show(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_news_headlines(req: &ActionRequest) -> ActionResponse {
     let tool = resolve_python_tool("AI_DISTRO_NEWS_TOOL", "news_reader.py");
-    match Command::new("python3").arg(tool).output() {
+    match Command::new(crate::utils::resolve_venv_python()).arg(tool).output() {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             ok_response(&req.name, &msg)
@@ -316,7 +316,7 @@ pub fn handle_family_message(req: &ActionRequest) -> ActionResponse {
     let msg = parts[1..].join("|");
 
     let tool = resolve_python_tool("AI_DISTRO_FAMILY_TOOL", "family_messenger.py");
-    match Command::new("python3")
+    match Command::new(crate::utils::resolve_venv_python())
         .arg(tool)
         .arg(name)
         .arg(msg)

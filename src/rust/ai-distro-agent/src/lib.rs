@@ -391,7 +391,7 @@ pub fn handle_set_preference(req: &ActionRequest) -> ActionResponse {
             .to_string()
     });
 
-    match std::process::Command::new("python3")
+    match std::process::Command::new(crate::utils::resolve_venv_python())
         .arg(&bayesian_path)
         .arg("set_preference")
         .arg(&key)
@@ -498,7 +498,7 @@ pub fn handle_request(
                 .to_string_lossy()
                 .to_string()
         });
-        let _ = std::process::Command::new("python3")
+        let _ = std::process::Command::new(crate::utils::resolve_venv_python())
             .arg(&bayesian_path)
             .arg("observe")
             .arg(&request.name)
@@ -569,7 +569,7 @@ fn handle_request_inner(
 
             let mut parsed_req: Option<ActionRequest> = None;
 
-            if let Ok(output) = std::process::Command::new("python3")
+            if let Ok(output) = std::process::Command::new(crate::utils::resolve_venv_python())
                 .arg(&brain_path)
                 .arg(text)
                 .output()
@@ -583,7 +583,7 @@ fn handle_request_inner(
             if parsed_req.is_none() {
                 let parser_path = std::env::var("AI_DISTRO_INTENT_PARSER")
                     .unwrap_or_else(|_| "tools/agent/intent_parser.py".to_string());
-                if let Ok(output) = std::process::Command::new("python3")
+                if let Ok(output) = std::process::Command::new(crate::utils::resolve_venv_python())
                     .arg(&parser_path)
                     .arg(text)
                     .output()
