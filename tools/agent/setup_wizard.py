@@ -36,8 +36,8 @@ PIPER_VOICE_JSON_URL = (
     "en/en_US/amy/medium/en_US-amy-medium.onnx.json"
 )
 PIPER_BINARY_URL = (
-    "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/"
-    "piper_linux_x86_64.tar.gz"
+    "https://github.com/rhasspy/piper/releases/download/v1.2.0/"
+    "piper_amd64.tar.gz"
 )
 
 # ── Terminal Colors ──────────────────────────────────────────────────
@@ -278,16 +278,36 @@ def setup_brain():
     api_key = ask("Enter an API key (or press Enter to skip)")
     if api_key:
         provider = ask("Provider (openai/gemini)", "openai")
-        env_path = CONFIG_DIR / "ai-distro-env.json"
-        env_data = {}
-        if env_path.exists():
-            with open(env_path) as f:
-                env_data = json.load(f)
-        env_data["llm_provider"] = provider
-        env_data["llm_api_key"] = api_key
-        with open(env_path, "w") as f:
-            json.dump(env_data, f, indent=2)
-        ok(f"Cloud brain configured ({provider}).")
+        # Write directly to agent.json — this is what brain.py reads
+        agent_config_paths = [
+            Path("/etc/ai-distro/agent.json"),
+            Path(os.path.expanduser("~/AI_Distro/configs/agent.json")),
+        ]
+        updated = False
+        for cfg_path in agent_config_paths:
+            if cfg_path.exists():
+                try:
+                    with open(cfg_path) as f:
+                        cfg = json.load(f)
+                    cfg.setdefault("intelligence", {})
+                    cfg["intelligence"]["use_cloud"] = True
+                    cfg["intelligence"]["cloud_provider"] = provider
+                    cfg["intelligence"]["api_key"] = api_key
+                    with open(cfg_path, "w") as f:
+                        json.dump(cfg, f, indent=2)
+                    ok(f"Cloud brain configured in {cfg_path}")
+                    updated = True
+                    break
+                except PermissionError:
+                    warn(f"Can't write to {cfg_path} (try sudo or edit manually)")
+        if not updated:
+            # Fallback: save to home config
+            fallback = Path(os.path.expanduser("~/AI_Distro/configs/agent.json"))
+            fallback.parent.mkdir(parents=True, exist_ok=True)
+            cfg = {"intelligence": {"use_cloud": True, "cloud_provider": provider, "api_key": api_key}}
+            with open(fallback, "w") as f:
+                json.dump(cfg, f, indent=2)
+            ok(f"Cloud brain configured ({provider}) in {fallback}")
         return True
 
     warn("No brain configured. The AI can still execute commands but won't reason.")
@@ -328,7 +348,7 @@ def test_audio(voice_installed):
     else:
         warn("Skipping voice test (Piper not installed).")
 
-    # Test microphone
+    # Test microphone + Vosk STT
     mic_available = shutil.which("arecord") is not None
     if mic_available:
         print(f"  {DIM}Microphone check...{RESET}")
@@ -338,6 +358,12 @@ def test_audio(voice_installed):
             )
             if "card" in result.stdout.lower():
                 ok("Microphone hardware detected.")
+                # Check Vosk
+                vosk_model = Path(os.path.expanduser("~/.cache/ai-distro/vosk/model"))
+                if vosk_model.is_dir():
+                    ok("Vosk STT model ready for voice input.")
+                else:
+                    warn("Vosk STT model not found. Run install.sh to download it.")
             else:
                 warn("No microphone found. Voice input will be unavailable.")
         except Exception:
@@ -474,7 +500,7 @@ def main():
 
     print(f"""
 {BOLD}Next steps:{RESET}
-  {CYAN}ai-distro start{RESET}    — Wake up all 8 services
+  {CYAN}ai-distro start{RESET}    — Wake up all 9 services
   {CYAN}ai-distro status{RESET}   — Check system pulse
   {CYAN}ai-distro heal{RESET}     — Run diagnostics
   {CYAN}ai-distro setup{RESET}    — Re-run this wizard

@@ -3,8 +3,20 @@ use colored::*;
 use serde_json::Value;
 use std::fs;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::process::Command;
 use sysinfo::System;
+
+/// Resolve the project's venv Python, falling back to system python3.
+fn get_python() -> PathBuf {
+    if let Some(home) = dirs::home_dir() {
+        let venv = home.join("AI_Distro/.venv/bin/python3");
+        if venv.exists() {
+            return venv;
+        }
+    }
+    PathBuf::from("python3")
+}
 
 #[derive(Parser)]
 #[command(name = "ai-distro")]
@@ -181,7 +193,7 @@ fn main() {
         Commands::Setup => {
             let home = dirs::home_dir().unwrap_or_default();
             let wizard_path = home.join("AI_Distro/tools/agent/setup_wizard.py");
-            let _ = Command::new("python3").arg(wizard_path).status();
+            let _ = Command::new(get_python()).arg(wizard_path).status();
         }
         Commands::Migrate { path } => {
             println!(
@@ -192,7 +204,7 @@ fn main() {
             let importer = dirs::home_dir()
                 .unwrap()
                 .join("AI_Distro/tools/agent/legacy_importer.py");
-            let _ = Command::new("python3").arg(importer).arg(path).spawn();
+            let _ = Command::new(get_python()).arg(importer).arg(path).spawn();
             println!(
                 "{} Importer launched in background. Check the HUD for progress.",
                 "✔".green()
@@ -203,7 +215,7 @@ fn main() {
             let healer = dirs::home_dir()
                 .unwrap()
                 .join("AI_Distro/tools/agent/system_healer.py");
-            let _ = Command::new("python3")
+            let _ = Command::new(get_python())
                 .arg(healer)
                 .arg("check_now")
                 .status();

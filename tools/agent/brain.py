@@ -82,7 +82,10 @@ def get_cloud_response(config, system_prompt, user_input):
     if not api_key:
         return None
 
-    import requests
+    try:
+        import requests
+    except ImportError:
+        return None
 
     if provider == "openai":
         url = "https://api.openai.com/v1/chat/completions"
@@ -96,24 +99,38 @@ def get_cloud_response(config, system_prompt, user_input):
             "response_format": {"type": "json_object"}
         }
         try:
-            res = requests.post(url, headers=headers, json=data, timeout=10)
+            res = requests.post(url, headers=headers, json=data, timeout=15)
+            res.raise_for_status()
             return res.json()["choices"][0]["message"]["content"]
-        except Exception:
+        except requests.exceptions.ConnectionError:
+            print("[Brain] Cloud: offline — falling back to local model", file=sys.stderr)
+            return None
+        except requests.exceptions.Timeout:
+            print("[Brain] Cloud: timeout — falling back to local model", file=sys.stderr)
+            return None
+        except Exception as e:
+            print(f"[Brain] Cloud error: {e}", file=sys.stderr)
             return None
 
     elif provider == "gemini":
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
         data = {
-            "contents": [{
-                "parts": [{"text": f"{system_prompt}\n\nUser: {user_input}"}]
-            }],
+            "contents": [{"parts": [{"text": f"{system_prompt}\n\nUser: {user_input}"}]}],
             "generationConfig": {"responseMimeType": "application/json"}
         }
         try:
             res = requests.post(url, json=data, timeout=15)
+            res.raise_for_status()
             content = res.json()["candidates"][0]["content"]["parts"][0]["text"]
             return content
-        except Exception:
+        except requests.exceptions.ConnectionError:
+            print("[Brain] Cloud: offline — falling back to local model", file=sys.stderr)
+            return None
+        except requests.exceptions.Timeout:
+            print("[Brain] Cloud: timeout — falling back to local model", file=sys.stderr)
+            return None
+        except Exception as e:
+            print(f"[Brain] Cloud error: {e}", file=sys.stderr)
             return None
 
     return None

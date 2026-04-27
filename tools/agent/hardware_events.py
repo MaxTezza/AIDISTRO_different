@@ -226,7 +226,12 @@ def run_polling_fallback():
 
 def main():
     if HAS_DBUS:
-        run_dbus_listener()
+        try:
+            run_dbus_listener()
+        except Exception as e:
+            print(f"Hardware Events: D-Bus listener crashed: {e}")
+            print("Hardware Events: Falling back to polling mode")
+            run_polling_fallback()
     else:
         print("Hardware Events: D-Bus bindings not available, using polling fallback")
         run_polling_fallback()
