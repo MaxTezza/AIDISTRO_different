@@ -60,11 +60,14 @@ fi
 # Check for required tools
 for tool in lb debootstrap xorriso; do
     if ! command -v "$tool" &>/dev/null; then
-        echo "Installing missing tool: $tool"
+        echo "Installing missing build tools..."
         apt-get install -y -qq live-build debootstrap xorriso 2>/dev/null
         break
     fi
 done
+# Bootloader + ISO hybrid packages needed on the host
+echo "  Ensuring host build dependencies..."
+apt-get install -y isolinux syslinux-common syslinux-utils 2>&1 | tail -1
 
 # ── Clean previous build ────────────────────────────────────────────
 echo "[1/6] Preparing build directory..."
@@ -86,8 +89,14 @@ lb config \
     --memtest none \
     --apt-recommends false \
     --firmware-binary true \
-    --firmware-chroot true \
-    2>/dev/null
+    --firmware-chroot false \
+    --security false \
+    --mirror-chroot "http://deb.debian.org/debian" \
+    --mirror-binary "http://deb.debian.org/debian" \
+    --mirror-bootstrap "http://deb.debian.org/debian" \
+    --linux-packages linux-image \
+    --linux-flavours amd64 \
+    --archive-areas "main contrib non-free non-free-firmware"
 
 # ── Package lists ────────────────────────────────────────────────────
 echo "[3/6] Defining package lists..."
@@ -95,6 +104,7 @@ echo "[3/6] Defining package lists..."
 # Core desktop environment
 mkdir -p config/package-lists
 cat > config/package-lists/desktop.list.chroot <<'PKGLIST'
+live-boot
 xfce4
 xfce4-terminal
 xfce4-panel
@@ -137,6 +147,8 @@ sudo
 locales
 socat
 unzip
+isolinux
+syslinux-common
 PKGLIST
 
 # Firmware for common laptop hardware
@@ -201,6 +213,7 @@ mkdir -p config/includes.chroot/home/pilot/AI_Distro
 # Copy source tree (excluding build artifacts and .git)
 rsync -a --exclude='.git' --exclude='target' --exclude='.venv' \
     --exclude='iso/build' --exclude='__pycache__' \
+    --exclude='legacy' --exclude='release' --exclude='node_modules' \
     "$ROOT_DIR/" config/includes.chroot/home/pilot/AI_Distro/
 
 # Also bundle pre-compiled binaries so first boot can skip compile if paths match
@@ -217,6 +230,7 @@ fi
 
 # Create first-boot setup script
 mkdir -p config/includes.chroot/etc/xdg/autostart
+mkdir -p config/includes.chroot/home/pilot/.config
 cat > config/includes.chroot/home/pilot/.config/ai-distro-firstboot.sh <<'FIRSTBOOT'
 #!/bin/bash
 # AI Distro First Boot — runs once after live boot
@@ -282,7 +296,7 @@ chmod +x config/hooks/live/0200-fix-perms.hook.chroot
 # ── Optionally bundle pre-downloaded models ──────────────────────────
 if [ "$INCLUDE_MODELS" = true ]; then
     echo "  Bundling neural models (this makes the ISO larger but faster to start)..."
-    MODEL_SRC="$HOME/.cache/ai-distro"
+    MODEL_SRC="/home/${SUDO_USER:-$USER}/.cache/ai-distro"
     if [ -d "$MODEL_SRC" ]; then
         mkdir -p config/includes.chroot/home/pilot/.cache/ai-distro
         # Copy models (but not huge ones if they'd make the ISO impractical)
@@ -307,6 +321,24 @@ fi
 echo "[6/6] Building ISO (this takes 10-30 minutes)..."
 echo "  Coffee time ☕"
 echo ""
+
+# Create local bootloader override to avoid broken rsvg/gfxboot in live-build 3.x
+# live-build checks config/bootloaders/isolinux/ first, before system copy
+_LOCAL_BOOT="config/bootloaders/isolinux"
+if [ ! -d "$_LOCAL_BOOT" ]; then
+    mkdir -p "$_LOCAL_BOOT"
+    # Copy essential bootloader files (real files, not broken symlinks)
+    cp /usr/lib/ISOLINUX/isolinux.bin "$_LOCAL_BOOT/"
+    cp /usr/lib/syslinux/modules/bios/vesamenu.c32 "$_LOCAL_BOOT/"
+    # Copy config templates from live-build (skip splash.svg.in to avoid rsvg)
+    for f in isolinux.cfg menu.cfg stdmenu.cfg live.cfg.in install.cfg; do
+        [ -f "/usr/share/live/build/bootloaders/isolinux/$f" ] && \
+            cp "/usr/share/live/build/bootloaders/isolinux/$f" "$_LOCAL_BOOT/"
+    done
+    # Create empty bootlogo archive — lb_binary_syslinux unconditionally reads it
+    (cd /tmp && : | cpio --quiet -o) > "$_LOCAL_BOOT/bootlogo"
+    echo "  ✔ Created local bootloader override"
+fi
 
 lb build 2>&1 | tee "${SCRIPT_DIR}/build.log"
 
