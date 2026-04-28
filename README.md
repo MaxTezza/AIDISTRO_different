@@ -141,12 +141,20 @@ Requires: Debian/Ubuntu, Rust toolchain, Python 3.11+, and a working D-Bus sessi
 ## Building a Live ISO
 
 ```bash
-bash tools/release/build_iso.sh
-cd /tmp/ai-distro-live && sudo lb build
+# Build the bootable ISO (requires sudo, ~20 min)
+sudo ./iso/build-iso.sh
 
-# Test in QEMU:
-qemu-system-x86_64 -m 4G -cdrom live-image-amd64.hybrid.iso -enable-kvm
+# Apply isohybrid for USB boot support
+sudo isohybrid iso/build/chroot/binary.hybrid.iso
+
+# Flash to USB (replace sdX with your drive)
+sudo dd if=iso/build/chroot/binary.hybrid.iso of=/dev/sdX bs=4M status=progress && sync
+
+# Or test in QEMU:
+qemu-system-x86_64 -m 4G -cdrom iso/build/chroot/binary.hybrid.iso -enable-kvm
 ```
+
+Build dependencies: `live-build`, `debootstrap`, `xorriso`, `isolinux`, `syslinux-common`, `syslinux-utils`
 
 ## Known Limitations
 

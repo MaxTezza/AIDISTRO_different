@@ -1,8 +1,41 @@
+# ── Build artifacts ──────────────────────────────────────
 /build/
-src/infra/rootfs/live-build/
 src/rust/target/
+target/
+
+# ── ISO build ────────────────────────────────────────────
+iso/build/
+iso/*.iso
 release/*.iso
+src/infra/rootfs/live-build/
+
+# ── Python ───────────────────────────────────────────────
 .venv/
 __pycache__/
 *.pyc
-target/
+*.pyo
+*.egg-info/
+.ruff_cache/
+
+# ── AI Models (too large for git) ────────────────────────
+*.gguf
+*.bin
+models/
+
+# ── Environment & secrets ────────────────────────────────
+.env
+configs/agent.json
+
+# ── Editor / IDE ─────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS junk ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Legacy prototypes ───────────────────────────────────
+legacy/
