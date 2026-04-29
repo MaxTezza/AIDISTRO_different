@@ -5,7 +5,11 @@ use std::process::Command;
 pub fn handle_plan_day_outfit(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("today");
     let planner = resolve_python_tool("AI_DISTRO_DAY_PLANNER", "day_planner.py");
-    match Command::new(crate::utils::resolve_venv_python()).arg(planner).arg(payload).output() {
+    match Command::new(crate::utils::resolve_venv_python())
+        .arg(planner)
+        .arg(payload)
+        .output()
+    {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if msg.is_empty() {
@@ -32,7 +36,11 @@ pub fn handle_plan_day_outfit(req: &ActionRequest) -> ActionResponse {
 pub fn handle_weather_get(req: &ActionRequest) -> ActionResponse {
     let payload = req.payload.as_deref().unwrap_or("today");
     let tool = resolve_python_tool("AI_DISTRO_WEATHER_TOOL", "weather_router.py");
-    match Command::new(crate::utils::resolve_venv_python()).arg(tool).arg(payload).output() {
+    match Command::new(crate::utils::resolve_venv_python())
+        .arg(tool)
+        .arg(payload)
+        .output()
+    {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if msg.is_empty() {
@@ -228,7 +236,11 @@ pub fn handle_get_autonomous_address(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_poll_autonomous_mail(req: &ActionRequest) -> ActionResponse {
     let tool = resolve_python_tool("AI_DISTRO_IDENTITY_TOOL", "autonomous_identity_tool.py");
-    match Command::new(crate::utils::resolve_venv_python()).arg(tool).arg("poll").output() {
+    match Command::new(crate::utils::resolve_venv_python())
+        .arg(tool)
+        .arg("poll")
+        .output()
+    {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             ok_response(&req.name, &msg)
@@ -286,7 +298,11 @@ pub fn handle_player_control(req: &ActionRequest) -> ActionResponse {
 pub fn handle_gallery_show(req: &ActionRequest) -> ActionResponse {
     let folder = req.payload.as_deref().unwrap_or("");
     let tool = resolve_python_tool("AI_DISTRO_GALLERY_TOOL", "gallery_show.py");
-    match Command::new(crate::utils::resolve_venv_python()).arg(tool).arg(folder).output() {
+    match Command::new(crate::utils::resolve_venv_python())
+        .arg(tool)
+        .arg(folder)
+        .output()
+    {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             ok_response(&req.name, &msg)
@@ -297,7 +313,10 @@ pub fn handle_gallery_show(req: &ActionRequest) -> ActionResponse {
 
 pub fn handle_news_headlines(req: &ActionRequest) -> ActionResponse {
     let tool = resolve_python_tool("AI_DISTRO_NEWS_TOOL", "news_reader.py");
-    match Command::new(crate::utils::resolve_venv_python()).arg(tool).output() {
+    match Command::new(crate::utils::resolve_venv_python())
+        .arg(tool)
+        .output()
+    {
         Ok(out) if out.status.success() => {
             let msg = String::from_utf8_lossy(&out.stdout).trim().to_string();
             ok_response(&req.name, &msg)
