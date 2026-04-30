@@ -33,6 +33,13 @@ enum Commands {
     Restart,
     Status,
     Setup,
+    /// Diagnose system health: models, binaries, audio, services
+    Doctor,
+    /// Ask the AI a question from the command line
+    Ask {
+        /// The question to ask
+        question: Vec<String>,
+    },
     /// Migrate legacy data into the AI memory
     Migrate {
         path: String,
@@ -194,6 +201,155 @@ fn main() {
             let home = dirs::home_dir().unwrap_or_default();
             let wizard_path = home.join("AI_Distro/tools/agent/setup_wizard.py");
             let _ = Command::new(get_python()).arg(wizard_path).status();
+        }
+        Commands::Doctor => {
+            println!("\n{}", "AI DISTRO: SYSTEM DOCTOR".cyan().bold());
+            println!("{}", "═".repeat(40));
+            let home = dirs::home_dir().unwrap_or_default();
+            let cache = home.join(".cache/ai-distro");
+            let mut issues = 0u32;
+
+            // Check models
+            println!("\n{}", " Neural Models".bold());
+            let models = [
+                ("llama-3.2-3b-instruct.gguf", "Brain (3B)"),
+                ("llama-3.2-1b-instruct.gguf", "Brain (1B fallback)"),
+            ];
+            for (file, label) in models {
+                let path = cache.join("models").join(file);
+                if path.exists() {
+                    let size = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+                    println!(
+                        "  {} {:20} ({:.0} MB)",
+                        "✔".green(),
+                        label,
+                        size as f64 / 1_048_576.0
+                    );
+                } else {
+                    println!("  {} {:20} — run: ai-distro setup", "✘".red(), label);
+                    issues += 1;
+                }
+            }
+            // Piper TTS
+            let piper = cache.join("piper/piper/piper");
+            if piper.exists() {
+                println!("  {} Piper TTS", "✔".green());
+            } else {
+                println!(
+                    "  {} Piper TTS            — run: ai-distro setup",
+                    "✘".red()
+                );
+                issues += 1;
+            }
+
+            // Check Rust binaries
+            println!("\n{}", " Rust Binaries".bold());
+            let bins = [
+                "ai-distro-agent",
+                "ai-distro-voice",
+                "ai-distro-hud",
+                "ai-distro-cli",
+            ];
+            for bin in bins {
+                let path = home.join(format!("AI_Distro/src/rust/target/release/{}", bin));
+                if path.exists() {
+                    println!("  {} {}", "✔".green(), bin);
+                } else {
+                    println!("  {} {} — run: bash install.sh", "✘".red(), bin);
+                    issues += 1;
+                }
+            }
+
+            // Check Python venv
+            println!("\n{}", " Python Environment".bold());
+            let venv = home.join("AI_Distro/.venv/bin/python3");
+            if venv.exists() {
+                println!("  {} Virtual environment", "✔".green());
+            } else {
+                println!(
+                    "  {} Virtual environment  — run: python3 -m venv .venv",
+                    "✘".red()
+                );
+                issues += 1;
+            }
+
+            // Check audio
+            println!("\n{}", " Audio".bold());
+            let pulse = Command::new("pactl").arg("info").output();
+            match pulse {
+                Ok(out) if out.status.success() => {
+                    println!("  {} PulseAudio/PipeWire running", "✔".green());
+                }
+                _ => {
+                    println!(
+                        "  {} Audio system not detected — voice may not work",
+                        "⚠".yellow()
+                    );
+                }
+            }
+
+            // Check disk space
+            println!("\n{}", " Disk".bold());
+            let df = Command::new("df")
+                .args(["-h", "--output=avail", "/"])
+                .output();
+            if let Ok(out) = df {
+                let avail = String::from_utf8_lossy(&out.stdout);
+                let free = avail.lines().nth(1).unwrap_or("?").trim();
+                println!("  {} {} free on /", "✔".green(), free);
+            }
+
+            // Summary
+            println!("\n{}", "═".repeat(40));
+            if issues == 0 {
+                println!(
+                    "{} All systems operational. You're ready to go!",
+                    "✔".green().bold()
+                );
+            } else {
+                println!(
+                    "{} {} issue(s) found. Run the suggested commands to fix.",
+                    "⚠".yellow().bold(),
+                    issues
+                );
+            }
+            println!();
+        }
+        Commands::Ask { question } => {
+            let q = question.join(" ");
+            if q.is_empty() {
+                println!("{} Usage: ai-distro ask \"your question here\"", "✘".red());
+                return;
+            }
+            let home = dirs::home_dir().unwrap_or_default();
+            let brain = home.join("AI_Distro/tools/agent/brain.py");
+            let output = Command::new(get_python())
+                .arg(&brain)
+                .arg("--query")
+                .arg(&q)
+                .output();
+            match output {
+                Ok(out) if out.status.success() => {
+                    let response = String::from_utf8_lossy(&out.stdout);
+                    println!("{}", response.trim());
+                }
+                Ok(out) => {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    if stderr.contains("No module") || stderr.contains("ModuleNotFoundError") {
+                        println!(
+                            "{} Missing Python dependencies. Run: bash install.sh",
+                            "✘".red()
+                        );
+                    } else if stderr.contains("model") || stderr.contains("gguf") {
+                        println!("{} Model not found. Run: ai-distro setup", "✘".red());
+                    } else {
+                        println!("{} {}", "✘".red(), stderr.trim());
+                    }
+                }
+                Err(e) => {
+                    println!("{} Could not run brain: {}", "✘".red(), e);
+                }
+            }
         }
         Commands::Migrate { path } => {
             println!(

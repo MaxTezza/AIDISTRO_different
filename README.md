@@ -2,6 +2,18 @@
 
 A locally-hosted AI agent layer for Linux that automates desktop tasks via voice, text, and vision. Runs on Debian/Ubuntu systems and combines a Rust service mesh with Python tool scripts.
 
+> **New here?** See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide.
+
+## Hardware Requirements
+
+| | Minimum | Recommended |
+|---|---------|-------------|
+| **CPU** | x86_64 with SSE4.2 | Any Intel/AMD from 2015+ |
+| **RAM** | 4 GB | 8 GB (16 GB for Vision) |
+| **Disk** | 8 GB free | 16 GB free |
+| **OS** | Debian 12 / Ubuntu 22.04 | Any modern Debian-based distro |
+| **GPU** | Not required | Not required (CPU inference) |
+
 ## What It Actually Does
 
 ### Local LLM Reasoning (`brain.py`)
@@ -119,6 +131,8 @@ ai-distro start          # Start all services
 ai-distro stop           # Stop all services
 ai-distro restart        # Restart all services
 ai-distro status         # Show service health + system metrics
+ai-distro doctor         # Diagnose: models, binaries, audio, disk
+ai-distro ask "question" # Ask the AI from the command line
 ai-distro setup          # Run onboarding wizard
 ai-distro heal           # One-shot health check + auto-repair
 ai-distro logs [--lines] # Tail service logs
