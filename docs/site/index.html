@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Distro — Your Computer, Thinking for Itself</title>
+    <meta name="description" content="A locally-hosted AI agent layer for Linux. Voice, text, and vision control via local LLMs, desktop automation, and a Rust/Python service mesh. No cloud required.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a26;
+            --accent-1: #6366f1;
+            --accent-2: #8b5cf6;
+            --accent-3: #a78bfa;
+            --text-primary: #e8e8f0;
+            --text-secondary: #9898b0;
+            --text-dim: #5a5a72;
+            --border: rgba(99, 102, 241, 0.15);
+            --glow: rgba(99, 102, 241, 0.08);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ─── Ambient Background ─── */
+        .ambient {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+        }
+        .ambient::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%);
+            animation: drift 25s ease-in-out infinite;
+        }
+        .ambient::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            right: -15%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(139,92,246,0.05) 0%, transparent 70%);
+            animation: drift 30s ease-in-out infinite reverse;
+        }
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(5vw, 3vh); }
+        }
+
+        /* ─── Navigation ─── */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+            background: rgba(10, 10, 15, 0.8);
+            border-bottom: 1px solid var(--border);
+        }
+        .logo {
+            font-weight: 800;
+            font-size: 1.2rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--text-primary); }
+        .nav-cta {
+            background: var(--accent-1) !important;
+            color: white !important;
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600 !important;
+            transition: transform 0.2s, box-shadow 0.2s !important;
+        }
+        .nav-cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+        }
+
+        /* ─── Hero ─── */
+        .hero {
+            padding: 10rem 2rem 6rem;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .hero-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--glow);
+            color: var(--accent-3);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.5rem;
+        }
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            line-height: 1.7;
+        }
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.9rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            color: white;
+            box-shadow: 0 4px 20px rgba(99,102,241,0.25);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99,102,241,0.35);
+        }
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-1);
+        }
+
+        /* ─── Terminal Demo ─── */
+        .terminal-section {
+            padding: 2rem 2rem 6rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .terminal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .terminal-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border);
+        }
+        .terminal-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+        }
+        .terminal-dot:nth-child(1) { background: #ff5f57; }
+        .terminal-dot:nth-child(2) { background: #febc2e; }
+        .terminal-dot:nth-child(3) { background: #28c840; }
+        .terminal-title {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+        .terminal-body {
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+        .terminal-body .prompt { color: var(--accent-3); }
+        .terminal-body .cmd { color: var(--text-primary); }
+        .terminal-body .output { color: var(--text-secondary); }
+        .terminal-body .success { color: #4ade80; }
+        .terminal-body .dim { color: var(--text-dim); }
+
+        /* ─── Features Grid ─── */
+        .features {
+            padding: 6rem 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .section-label {
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent-1);
+            margin-bottom: 1rem;
+        }
+        .section-title {
+            text-align: center;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            max-width: 500px;
+            margin: 0 auto 4rem;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            border-color: var(--accent-1);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(99,102,241,0.1);
+        }
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 1.2rem;
+            background: var(--glow);
+            border: 1px solid var(--border);
+        }
+        .feature-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.6rem;
+        }
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* ─── Architecture ─── */
+        .arch {
+            padding: 6rem 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .arch-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .arch-table th,
+        .arch-table td {
+            padding: 0.8rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        .arch-table th {
+            color: var(--text-dim);
+            font-weight: 600;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .arch-table td:first-child {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-3);
+        }
+        .lang-badge {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .lang-rust { background: rgba(222,114,60,0.15); color: #de723c; }
+        .lang-python { background: rgba(55,160,220,0.15); color: #37a0dc; }
+
+        /* ─── CTA ─── */
+        .cta {
+            padding: 8rem 2rem;
+            text-align: center;
+        }
+        .cta h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+        .cta p {
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            font-size: 1.1rem;
+        }
+        .cta-code {
+            display: inline-block;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--accent-3);
+            margin-bottom: 2rem;
+        }
+
+        /* ─── Footer ─── */
+        footer {
+            padding: 3rem 2rem;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+        footer a { color: var(--accent-3); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 600px) {
+            nav { padding: 1rem; }
+            .nav-links a:not(.nav-cta) { display: none; }
+            .hero { padding: 8rem 1.5rem 4rem; }
+            .hero-actions { flex-direction: column; align-items: center; }
+            .features, .arch { padding: 4rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient"></div>
+
+    <nav>
+        <div class="logo">AI Distro</div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#architecture">Architecture</a>
+            <a href="https://gitlab.com/maxtezza29464/ai_distro" class="nav-cta">Get Started →</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-badge">Open Source • 100% Local • No Cloud Required</div>
+        <h1>Your Computer,<br><span>Thinking for Itself</span></h1>
+        <p>A locally-hosted AI agent layer for Linux. Voice commands, screen understanding, desktop automation — all running on your hardware with local LLMs.</p>
+        <div class="hero-actions">
+            <a href="https://gitlab.com/maxtezza29464/ai_distro" class="btn btn-primary">
+                ⚡ Clone &amp; Install
+            </a>
+            <a href="https://github.com/MaxTezza/AIDISTRO_different" class="btn btn-secondary">
+                GitHub Mirror
+            </a>
+        </div>
+    </section>
+
+    <section class="terminal-section">
+        <div class="terminal">
+            <div class="terminal-bar">
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <span class="terminal-title">ai-distro</span>
+            </div>
+            <div class="terminal-body">
+                <span class="prompt">$</span> <span class="cmd">ai-distro doctor</span><br>
+                <br>
+                <span class="output">AI DISTRO: SYSTEM DOCTOR</span><br>
+                <span class="dim">════════════════════════════════════════</span><br>
+                <br>
+                <span class="output"> Neural Models</span><br>
+                <span class="success">  ✔ Brain (3B)           (1926 MB)</span><br>
+                <span class="success">  ✔ Brain (1B fallback)  (770 MB)</span><br>
+                <span class="success">  ✔ Piper TTS</span><br>
+                <br>
+                <span class="output"> Rust Binaries</span><br>
+                <span class="success">  ✔ ai-distro-agent</span><br>
+                <span class="success">  ✔ ai-distro-voice</span><br>
+                <span class="success">  ✔ ai-distro-hud</span><br>
+                <span class="success">  ✔ ai-distro-cli</span><br>
+                <br>
+                <span class="success">✔ All systems operational.</span><br>
+                <br>
+                <span class="prompt">$</span> <span class="cmd">ai-distro ask "What can you do?"</span><br>
+                <span class="output">I can control your desktop, read the news,<br>play music, navigate the web, manage files,<br>and more — all running locally on your machine.</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="section-label">Capabilities</div>
+        <h2 class="section-title">Everything runs on your hardware</h2>
+        <p class="section-subtitle">No API keys, no cloud bills, no data leaving your machine.</p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>Local LLM Reasoning</h3>
+                <p>Llama 3.2 runs entirely on your CPU via llama.cpp. Bayesian context and conversation memory make it personal.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎤</div>
+                <h3>Voice Pipeline</h3>
+                <p>Wake word detection → Vosk speech-to-text → LLM → Piper text-to-speech. Full voice loop, zero internet.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👁️</div>
+                <h3>Screen Understanding</h3>
+                <p>Moondream2 vision model sees your desktop. Ask "what's on my screen?" and get a real answer.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🖱️</div>
+                <h3>Desktop Automation</h3>
+                <p>AT-SPI semantic automation finds and clicks buttons by name across any GTK/Qt app. No coordinates needed.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔧</div>
+                <h3>Self-Healing</h3>
+                <p>Monitors disk, memory, network, and audio. Automatically repairs crashed services and cleans up resources.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧩</div>
+                <h3>Extensible Skills</h3>
+                <p>Python skill SDK with hot-reload. Write a script, drop it in, and the agent learns new abilities instantly.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="arch" id="architecture">
+        <div class="section-label">Architecture</div>
+        <h2 class="section-title">Built to be fast</h2>
+        <p class="section-subtitle">Rust core for performance. Python tools for flexibility. Unix sockets for IPC.</p>
+
+        <table class="arch-table">
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Language</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>ai-distro-agent</td>
+                    <td><span class="lang-badge lang-rust">Rust</span></td>
+                    <td>Core IPC server, action routing, policy enforcement</td>
+                </tr>
+                <tr>
+                    <td>ai-distro-voice</td>
+                    <td><span class="lang-badge lang-rust">Rust</span></td>
+                    <td>Audio capture → STT → agent → TTS</td>
+                </tr>
+                <tr>
+                    <td>ai-distro-hud</td>
+                    <td><span class="lang-badge lang-rust">Rust</span></td>
+                    <td>Desktop overlay with agent event cards</td>
+                </tr>
+                <tr>
+                    <td>ai-distro-vision</td>
+                    <td><span class="lang-badge lang-python">Python</span></td>
+                    <td>Moondream2 VLM server on localhost</td>
+                </tr>
+                <tr>
+                    <td>ai-distro-healer</td>
+                    <td><span class="lang-badge lang-python">Python</span></td>
+                    <td>Autonomous health monitor and repair loop</td>
+                </tr>
+                <tr>
+                    <td>ai-distro-spirit</td>
+                    <td><span class="lang-badge lang-python">Python</span></td>
+                    <td>Telegram remote control bridge</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="cta">
+        <h2>Try it in 5 minutes</h2>
+        <p>Clone, install, talk. That's it.</p>
+        <div class="cta-code">
+            git clone https://gitlab.com/maxtezza29464/ai_distro.git && cd ai_distro && bash install.sh
+        </div>
+        <br><br>
+        <div class="hero-actions" style="justify-content: center;">
+            <a href="https://gitlab.com/maxtezza29464/ai_distro" class="btn btn-primary">Get Started →</a>
+            <a href="https://gitlab.com/maxtezza29464/ai_distro/-/blob/main/QUICKSTART.md" class="btn btn-secondary">Read Quick Start</a>
+        </div>
+    </section>
+
+    <footer>
+        <p>
+            AI Distro is open source under the <a href="https://gitlab.com/maxtezza29464/ai_distro/-/blob/main/LICENSE">MIT License</a>.
+            Built by <a href="https://gitlab.com/maxtezza29464">Max Tezza</a>.
+        </p>
+    </footer>
+</body>
+</html>
