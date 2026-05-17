@@ -90,24 +90,32 @@ class ConversationMemory:
                 (term,)
             )
 
-    def _compute_tfidf(self, tokens, conn):
+    def _compute_tfidf(self, tokens, conn, doc_freq_cache=None, num_docs=None):
         """Compute TF-IDF vector for a set of tokens."""
         tf = Counter(tokens)
         total = len(tokens) or 1
 
-        # Get total document count
-        row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
-        num_docs = max(row[0], 1)
+        if num_docs is None:
+            # Get total document count
+            row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
+            num_docs = max(row[0], 1)
 
         vector = {}
         for term, count in tf.items():
             # TF: normalized by document length
             term_freq = count / total
+
             # IDF: log(N / df)
-            df_row = conn.execute(
-                "SELECT count FROM doc_freq WHERE term = ?", (term,)
-            ).fetchone()
-            doc_freq = df_row[0] if df_row else 1
+            if doc_freq_cache is not None and term in doc_freq_cache:
+                doc_freq = doc_freq_cache[term]
+            else:
+                df_row = conn.execute(
+                    "SELECT count FROM doc_freq WHERE term = ?", (term,)
+                ).fetchone()
+                doc_freq = df_row[0] if df_row else 1
+                if doc_freq_cache is not None:
+                    doc_freq_cache[term] = doc_freq
+
             idf = math.log(num_docs / doc_freq) + 1.0
             vector[term] = term_freq * idf
         return vector
@@ -165,56 +173,83 @@ class ConversationMemory:
             return []
 
         conn = sqlite3.connect(self.db_path)
-        query_vec = self._compute_tfidf(query_tokens, conn)
 
-        # Score all conversations
+        row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
+        num_docs = max(row[0], 1)
+
+        # First read all tokens to allow bulk fetching of document frequencies
         rows = conn.execute(
             "SELECT id, timestamp, user_message, ai_response, context, tokens, importance "
             "FROM conversations ORDER BY timestamp DESC LIMIT 500"
         ).fetchall()
 
-        scored = []
-        for row in rows:
-            doc_tokens = json.loads(row[5]) if row[5] else []
-            if not doc_tokens:
-                continue
-            doc_vec = self._compute_tfidf(doc_tokens, conn)
-            sim = self._cosine_similarity(query_vec, doc_vec)
-            # Boost by importance
-            sim *= row[6]
-            if sim > 0.05:
-                scored.append({
-                    "id": row[0],
-                    "time": datetime.fromtimestamp(row[1]).strftime("%Y-%m-%d %H:%M"),
-                    "user": row[2],
-                    "ai": row[3],
-                    "context": row[4],
-                    "similarity": round(sim, 4),
-                })
-
-        # Also search notes
         notes = conn.execute(
             "SELECT id, timestamp, content, tokens FROM notes ORDER BY timestamp DESC LIMIT 200"
         ).fetchall()
-        for note in notes:
-            doc_tokens = json.loads(note[3]) if note[3] else []
-            if not doc_tokens:
-                continue
-            doc_vec = self._compute_tfidf(doc_tokens, conn)
+
+        # Keep track of parsed tokens for each doc and collect all terms
+        parsed_docs = []
+        all_terms = set(query_tokens)
+
+        for r in rows:
+            t = json.loads(r[5]) if r[5] else []
+            if t:
+                all_terms.update(t)
+                parsed_docs.append(('conv', r, t))
+
+        for n in notes:
+            t = json.loads(n[3]) if n[3] else []
+            if t:
+                all_terms.update(t)
+                parsed_docs.append(('note', n, t))
+
+        # Bulk fetch document frequencies for all required terms
+        doc_freq_cache = {}
+        if all_terms:
+            terms_list = list(all_terms)
+            batch_size = 900 # SQLite limits variables in IN clause
+            for i in range(0, len(terms_list), batch_size):
+                batch = terms_list[i:i+batch_size]
+                placeholders = ','.join(['?'] * len(batch))
+                cursor = conn.execute(
+                    f"SELECT term, count FROM doc_freq WHERE term IN ({placeholders})", batch
+                )
+                for term, count in cursor.fetchall():
+                    doc_freq_cache[term] = count
+
+        query_vec = self._compute_tfidf(query_tokens, conn, doc_freq_cache, num_docs)
+
+        scored = []
+        for doc_type, data, doc_tokens in parsed_docs:
+            doc_vec = self._compute_tfidf(doc_tokens, conn, doc_freq_cache, num_docs)
             sim = self._cosine_similarity(query_vec, doc_vec)
+
+            if doc_type == 'conv':
+                # Boost by importance
+                sim *= data[6]
+
             if sim > 0.05:
                 scored.append({
-                    "id": f"note-{note[0]}",
-                    "time": datetime.fromtimestamp(note[1]).strftime("%Y-%m-%d %H:%M"),
-                    "user": note[2],
-                    "ai": "(stored note)",
+                    "id": data[0] if doc_type == 'conv' else f"note-{data[0]}",
+                    "time": data[1],
+                    "user": data[2],
+                    "ai": data[3] if doc_type == 'conv' else "(stored note)",
+                    "context": data[4] if doc_type == 'conv' else None,
                     "similarity": round(sim, 4),
                 })
+                # Remove context from notes for structure match
+                if doc_type == 'note':
+                    del scored[-1]["context"]
 
         conn.close()
 
         scored.sort(key=lambda x: x["similarity"], reverse=True)
-        return scored[:top_k]
+        top_scored = scored[:top_k]
+
+        for item in top_scored:
+             item["time"] = datetime.fromtimestamp(item["time"]).strftime("%Y-%m-%d %H:%M")
+
+        return top_scored
 
     def recent(self, n=10):
         """Get the N most recent conversations."""

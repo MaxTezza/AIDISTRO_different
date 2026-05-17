@@ -1,0 +1,3 @@
+## 2026-05-17 - SQLite N+1 bottlenecks in Local RAG memory recall
+**Learning:** Python SQLite data processing in this repo can be heavily vulnerable to N+1 query bottlenecks if nested lookups are used (e.g., fetching document term frequency inside an inner loop instead of batch caching them before). We found an internal `conversation_memory.py` using this pattern where it ran 1 SQL query per unique token per document scored. Fixing it dropped local vector search time from ~0.143s to ~0.02s per 500 documents.
+**Action:** Always inspect data loops involving SQLite fetches. Instead of running a SELECT for each row/element, extract all keys needed, bulk fetch using an IN clause, cache in a `dict`, and use `.get()` in the inner loop.
