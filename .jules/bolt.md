@@ -1,0 +1,3 @@
+## 2024-05-15 - N+1 Query Anti-Pattern in SQLite Data Processing
+**Learning:** Found a severe N+1 bottleneck in `conversation_memory.py`. When scoring similarities for `recall`, the `_compute_tfidf` method was being called for every document in a loop, and inside that method, it executed a `SELECT COUNT(*)` for `conversations` and individual `SELECT`s for each term's document frequency. This led to hundreds of identical/unnecessary database queries blocking performance.
+**Action:** Always pre-fetch shared aggregate variables (like document totals or term frequencies) *before* entering computation loops and pass them as optional arguments. Batching SQLite queries using a dictionary mapping can drastically reduce query overhead from N+1 to O(1).
