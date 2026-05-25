@@ -1,0 +1,3 @@
+## 2024-05-24 - [Local RAG N+1 Query Bottleneck]
+**Learning:** Python SQLite data processing in this repo can be vulnerable to N+1 query bottlenecks, specifically when computing TF-IDF in a loop. In `conversation_memory.py`, querying `doc_freq` and `COUNT(*)` for every term in every document during `recall()` led to thousands of queries for a single search, slowing down local RAG.
+**Action:** When performing local RAG or similar iterative data processing with SQLite, pre-fetch required data (like document frequencies or total counts) into a local Python dictionary cache before the loop. This reduces thousands of database calls to a single batch operation, resulting in massive performance improvements (e.g. from ~1.01s to ~0.13s for 5 runs of 500 documents).
