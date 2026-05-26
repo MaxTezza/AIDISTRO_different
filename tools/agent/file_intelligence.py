@@ -268,14 +268,19 @@ def search(query, top_k=20, file_type=None, days=None):
     # Get total doc count for IDF
     num_docs = max(conn.execute("SELECT COUNT(*) FROM files").fetchone()[0], 1)
 
+    # ⚡ Bolt: Cache term frequencies to prevent N+1 query bottlenecks during scoring
+    doc_freq_cache = {}
+
     # Compute query TF-IDF
     query_tf = Counter(query_tokens)
     total_q = len(query_tokens)
     query_vec = {}
     for term, count in query_tf.items():
         tf = count / total_q
-        df_row = conn.execute("SELECT count FROM doc_freq WHERE term = ?", (term,)).fetchone()
-        idf = math.log(num_docs / (df_row[0] if df_row else 1)) + 1.0
+        if term not in doc_freq_cache:
+            df_row = conn.execute("SELECT count FROM doc_freq WHERE term = ?", (term,)).fetchone()
+            doc_freq_cache[term] = df_row[0] if df_row else 1
+        idf = math.log(num_docs / doc_freq_cache[term]) + 1.0
         query_vec[term] = tf * idf
 
     # Build filter conditions
@@ -310,8 +315,10 @@ def search(query, top_k=20, file_type=None, days=None):
         for term, count in doc_tf.items():
             if term in query_vec:
                 tf = count / total_d
-                df_row = conn.execute("SELECT count FROM doc_freq WHERE term = ?", (term,)).fetchone()
-                idf = math.log(num_docs / (df_row[0] if df_row else 1)) + 1.0
+                if term not in doc_freq_cache:
+                    df_row = conn.execute("SELECT count FROM doc_freq WHERE term = ?", (term,)).fetchone()
+                    doc_freq_cache[term] = df_row[0] if df_row else 1
+                idf = math.log(num_docs / doc_freq_cache[term]) + 1.0
                 doc_vec[term] = tf * idf
 
         if not doc_vec:
