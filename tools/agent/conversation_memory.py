@@ -174,8 +174,7 @@ class ConversationMemory:
         row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
         num_docs = max(row[0], 1)
 
-        df_rows = conn.execute("SELECT term, count FROM doc_freq").fetchall()
-        df_dict = {row[0]: row[1] for row in df_rows}
+        df_dict = dict(conn.execute("SELECT term, count FROM doc_freq"))
 
         query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_dict=df_dict)
 
