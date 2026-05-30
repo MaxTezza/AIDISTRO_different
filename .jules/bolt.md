@@ -1,0 +1,3 @@
+## 2024-05-24 - [Avoid N+1 Queries in TF-IDF Implementation]
+**Learning:** The TF-IDF implementation in `conversation_memory.py` executed two database queries (`COUNT(*)` for document count and a SELECT for term frequency) inside a loop that iterated over every term in every document. In Python SQLite data processing in this repo, this created a massive N+1 query bottleneck.
+**Action:** When working with DB connections inside loops (like iterating over document frequencies), pre-fetch the necessary metrics if possible, or build a local dictionary cache (e.g. `df_cache`) to store database lookup results and reuse them for repeated queries.
