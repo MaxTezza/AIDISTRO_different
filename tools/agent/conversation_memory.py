@@ -90,24 +90,30 @@ class ConversationMemory:
                 (term,)
             )
 
-    def _compute_tfidf(self, tokens, conn):
+    def _compute_tfidf(self, tokens, conn, pre_num_docs=None, pre_df=None):
         """Compute TF-IDF vector for a set of tokens."""
         tf = Counter(tokens)
         total = len(tokens) or 1
 
         # Get total document count
-        row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
-        num_docs = max(row[0], 1)
+        if pre_num_docs is not None:
+            num_docs = pre_num_docs
+        else:
+            row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
+            num_docs = max(row[0], 1)
 
         vector = {}
         for term, count in tf.items():
             # TF: normalized by document length
             term_freq = count / total
             # IDF: log(N / df)
-            df_row = conn.execute(
-                "SELECT count FROM doc_freq WHERE term = ?", (term,)
-            ).fetchone()
-            doc_freq = df_row[0] if df_row else 1
+            if pre_df is not None:
+                doc_freq = pre_df.get(term, 1)
+            else:
+                df_row = conn.execute(
+                    "SELECT count FROM doc_freq WHERE term = ?", (term,)
+                ).fetchone()
+                doc_freq = df_row[0] if df_row else 1
             idf = math.log(num_docs / doc_freq) + 1.0
             vector[term] = term_freq * idf
         return vector
@@ -165,7 +171,15 @@ class ConversationMemory:
             return []
 
         conn = sqlite3.connect(self.db_path)
-        query_vec = self._compute_tfidf(query_tokens, conn)
+
+        # ⚡ Bolt: Cache total document count and term frequencies
+        # Fixes N+1 query issue inside the upcoming similarity loops
+        num_docs_row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
+        pre_num_docs = max(num_docs_row[0], 1)
+
+        pre_df = {row[0]: row[1] for row in conn.execute("SELECT term, count FROM doc_freq").fetchall()}
+
+        query_vec = self._compute_tfidf(query_tokens, conn, pre_num_docs=pre_num_docs, pre_df=pre_df)
 
         # Score all conversations
         rows = conn.execute(
@@ -178,7 +192,7 @@ class ConversationMemory:
             doc_tokens = json.loads(row[5]) if row[5] else []
             if not doc_tokens:
                 continue
-            doc_vec = self._compute_tfidf(doc_tokens, conn)
+            doc_vec = self._compute_tfidf(doc_tokens, conn, pre_num_docs=pre_num_docs, pre_df=pre_df)
             sim = self._cosine_similarity(query_vec, doc_vec)
             # Boost by importance
             sim *= row[6]
@@ -200,7 +214,7 @@ class ConversationMemory:
             doc_tokens = json.loads(note[3]) if note[3] else []
             if not doc_tokens:
                 continue
-            doc_vec = self._compute_tfidf(doc_tokens, conn)
+            doc_vec = self._compute_tfidf(doc_tokens, conn, pre_num_docs=pre_num_docs, pre_df=pre_df)
             sim = self._cosine_similarity(query_vec, doc_vec)
             if sim > 0.05:
                 scored.append({
