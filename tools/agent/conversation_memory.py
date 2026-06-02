@@ -105,15 +105,13 @@ class ConversationMemory:
             # TF: normalized by document length
             term_freq = count / total
             # IDF: log(N / df)
-            if df_cache is not None and term in df_cache:
-                doc_freq = df_cache[term]
+            if df_cache is not None:
+                doc_freq = df_cache.get(term, 1)
             else:
                 df_row = conn.execute(
                     "SELECT count FROM doc_freq WHERE term = ?", (term,)
                 ).fetchone()
                 doc_freq = df_row[0] if df_row else 1
-                if df_cache is not None:
-                    df_cache[term] = doc_freq
 
             idf = math.log(num_docs / doc_freq) + 1.0
             vector[term] = term_freq * idf
