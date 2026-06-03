@@ -271,11 +271,24 @@ def search(query, top_k=20, file_type=None, days=None):
     # Compute query TF-IDF
     query_tf = Counter(query_tokens)
     total_q = len(query_tokens)
+
+    # ⚡ Bolt: Cache document frequencies for query terms to avoid N+1 queries
+    query_terms = list(query_tf.keys())
+    df_map = {}
+    for i in range(0, len(query_terms), 999):
+        chunk = query_terms[i:i+999]
+        placeholders = ",".join(["?"] * len(chunk))
+        df_rows = conn.execute(f"SELECT term, count FROM doc_freq WHERE term IN ({placeholders})", chunk).fetchall()
+        for row in df_rows:
+            df_map[row[0]] = row[1]
+
     query_vec = {}
+    term_idfs = {}
     for term, count in query_tf.items():
         tf = count / total_q
-        df_row = conn.execute("SELECT count FROM doc_freq WHERE term = ?", (term,)).fetchone()
-        idf = math.log(num_docs / (df_row[0] if df_row else 1)) + 1.0
+        doc_count = max(1, min(df_map.get(term, 1), num_docs))
+        idf = math.log(num_docs / doc_count) + 1.0
+        term_idfs[term] = idf
         query_vec[term] = tf * idf
 
     # Build filter conditions
@@ -310,9 +323,8 @@ def search(query, top_k=20, file_type=None, days=None):
         for term, count in doc_tf.items():
             if term in query_vec:
                 tf = count / total_d
-                df_row = conn.execute("SELECT count FROM doc_freq WHERE term = ?", (term,)).fetchone()
-                idf = math.log(num_docs / (df_row[0] if df_row else 1)) + 1.0
-                doc_vec[term] = tf * idf
+                # ⚡ Bolt: Use pre-calculated IDF instead of querying DB in a loop
+                doc_vec[term] = tf * term_idfs[term]
 
         if not doc_vec:
             continue
