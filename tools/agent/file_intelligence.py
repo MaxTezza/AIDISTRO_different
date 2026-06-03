@@ -274,9 +274,13 @@ def search(query, top_k=20, file_type=None, days=None):
 
     # ⚡ Bolt: Cache document frequencies for query terms to avoid N+1 queries
     query_terms = list(query_tf.keys())
-    placeholders = ",".join(["?"] * len(query_terms))
-    df_rows = conn.execute(f"SELECT term, count FROM doc_freq WHERE term IN ({placeholders})", query_terms).fetchall()
-    df_map = {row[0]: row[1] for row in df_rows}
+    df_map = {}
+    for i in range(0, len(query_terms), 999):
+        chunk = query_terms[i:i+999]
+        placeholders = ",".join(["?"] * len(chunk))
+        df_rows = conn.execute(f"SELECT term, count FROM doc_freq WHERE term IN ({placeholders})", chunk).fetchall()
+        for row in df_rows:
+            df_map[row[0]] = row[1]
 
     query_vec = {}
     term_idfs = {}
