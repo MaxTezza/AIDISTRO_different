@@ -286,7 +286,7 @@ def search(query, top_k=20, file_type=None, days=None):
     term_idfs = {}
     for term, count in query_tf.items():
         tf = count / total_q
-        doc_count = df_map.get(term, 1)
+        doc_count = max(1, min(df_map.get(term, 1), num_docs))
         idf = math.log(num_docs / doc_count) + 1.0
         term_idfs[term] = idf
         query_vec[term] = tf * idf
