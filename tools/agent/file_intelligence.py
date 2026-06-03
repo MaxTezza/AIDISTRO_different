@@ -273,12 +273,16 @@ def search(query, top_k=20, file_type=None, days=None):
     unique_terms = list(query_tf.keys())
     df_cache = {}
     if unique_terms:
-        placeholders = ",".join("?" * len(unique_terms))
-        df_rows = conn.execute(
-            f"SELECT term, count FROM doc_freq WHERE term IN ({placeholders})",
-            unique_terms
-        ).fetchall()
-        df_cache = {row[0]: row[1] for row in df_rows}
+        limit = 999
+        for i in range(0, len(unique_terms), limit):
+            chunk = unique_terms[i:i + limit]
+            placeholders = ",".join("?" * len(chunk))
+            df_rows = conn.execute(
+                f"SELECT term, count FROM doc_freq WHERE term IN ({placeholders})",
+                chunk
+            ).fetchall()
+            for row in df_rows:
+                df_cache[row[0]] = row[1]
 
     # Compute query TF-IDF
     total_q = len(query_tokens)
