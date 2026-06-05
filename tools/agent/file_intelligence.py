@@ -230,12 +230,12 @@ def index_files(incremental=True):
                 )
 
                 # Update document frequency
-                for term in set(all_tokens):
-                    conn.execute(
-                        "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
-                        "ON CONFLICT(term) DO UPDATE SET count = count + 1",
-                        (term,)
-                    )
+                # ⚡ Bolt: Batch document frequency inserts to avoid N+1 queries
+                conn.executemany(
+                    "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
+                    "ON CONFLICT(term) DO UPDATE SET count = count + 1",
+                    [(term,) for term in set(all_tokens)]
+                )
 
                 indexed += 1
 
@@ -312,9 +312,14 @@ def search(query, top_k=20, file_type=None, days=None):
 
     # Score each document
     scored = []
+    query_terms_set = set(query_vec.keys())
     for row in rows:
         doc_tokens = json.loads(row[5]) if row[5] else []
         if not doc_tokens:
+            continue
+
+        # ⚡ Bolt: Early skip if no common terms
+        if query_terms_set.isdisjoint(doc_tokens):
             continue
 
         doc_tf = Counter(doc_tokens)

@@ -3,3 +3,8 @@
 **Learning:** When evaluating performance in Python scripts interacting with an SQLite database (like in `tools/agent/conversation_memory.py`), be highly suspicious of database access within nested loops (such as iterating through terms for TF-IDF calculations across multiple documents). This structure commonly results in severe N+1 query performance degradation. In testing with 500 records, the difference was massive (from 0.26 seconds to 0.03 seconds) once the N+1 issue was patched.
 
 **Action:** Whenever implementing or debugging data retrieval loops referencing SQLite, fetch reference data in aggregate (e.g., pulling document frequencies and total document count) and store it in a local Python dictionary `cache` *before* the loop starts.
+
+## 2026-06-02 - Python TF-IDF Empty Set Short-circuiting
+
+**Learning:** When performing computationally expensive TF-IDF transformations over a large dataset, computing the full vector for a document that shares zero terms with the query is wasted effort, because their dot product will be zero. Checking for intersection before computation yielded a substantial speedup.
+**Action:** When implementing cosine similarity on sparse word bags, always include a fast initial check for common elements (`query_terms.isdisjoint(doc_tokens)`) before triggering term-frequency or document-frequency lookups.
