@@ -190,9 +190,13 @@ class ConversationMemory:
         ).fetchall()
 
         scored = []
+        query_terms_set = set(query_vec.keys())
         for row in rows:
             doc_tokens = json.loads(row[5]) if row[5] else []
             if not doc_tokens:
+                continue
+            # ⚡ Bolt: Early skip if no common terms to avoid expensive compute_tfidf
+            if query_terms_set.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
