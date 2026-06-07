@@ -170,6 +170,7 @@ class ConversationMemory:
         query_tokens = self._tokenize(query)
         if not query_tokens:
             return []
+        query_terms_set = set(query_tokens)
 
         conn = sqlite3.connect(self.db_path)
 
@@ -194,6 +195,10 @@ class ConversationMemory:
             doc_tokens = json.loads(row[5]) if row[5] else []
             if not doc_tokens:
                 continue
+
+            if query_terms_set.isdisjoint(doc_tokens):
+                continue
+
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
             # Boost by importance
@@ -216,6 +221,10 @@ class ConversationMemory:
             doc_tokens = json.loads(note[3]) if note[3] else []
             if not doc_tokens:
                 continue
+
+            if query_terms_set.isdisjoint(doc_tokens):
+                continue
+
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
             if sim > 0.05:
