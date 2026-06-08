@@ -263,6 +263,9 @@ def search(query, top_k=20, file_type=None, days=None):
     if not query_tokens:
         return []
 
+    # ⚡ Bolt: Cache query terms set for O(1) disjoint checks
+    query_terms_set = set(query_tokens)
+
     conn = sqlite3.connect(str(INDEX_DB))
 
     # Get total doc count for IDF
@@ -314,7 +317,8 @@ def search(query, top_k=20, file_type=None, days=None):
     scored = []
     for row in rows:
         doc_tokens = json.loads(row[5]) if row[5] else []
-        if not doc_tokens:
+        # ⚡ Bolt: Short-circuit vectorization if no terms overlap
+        if not doc_tokens or query_terms_set.isdisjoint(doc_tokens):
             continue
 
         doc_tf = Counter(doc_tokens)
