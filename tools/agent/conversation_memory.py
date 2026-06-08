@@ -171,6 +171,9 @@ class ConversationMemory:
         if not query_tokens:
             return []
 
+        # ⚡ Bolt: Cache query terms set for O(1) disjoint checks
+        query_terms = set(query_tokens)
+
         conn = sqlite3.connect(self.db_path)
 
         # OPTIMIZATION: Cache document count and term frequencies to prevent N+1 query bottleneck
@@ -192,7 +195,8 @@ class ConversationMemory:
         scored = []
         for row in rows:
             doc_tokens = json.loads(row[5]) if row[5] else []
-            if not doc_tokens:
+            # ⚡ Bolt: Short-circuit vectorization if no terms overlap
+            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
@@ -214,7 +218,8 @@ class ConversationMemory:
         ).fetchall()
         for note in notes:
             doc_tokens = json.loads(note[3]) if note[3] else []
-            if not doc_tokens:
+            # ⚡ Bolt: Short-circuit vectorization if no terms overlap
+            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
