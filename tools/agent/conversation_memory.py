@@ -190,9 +190,13 @@ class ConversationMemory:
         ).fetchall()
 
         scored = []
+        query_set = set(query_tokens)
         for row in rows:
             doc_tokens = json.loads(row[5]) if row[5] else []
             if not doc_tokens:
+                continue
+            # ⚡ Bolt: short-circuit vectorization if no overlapping terms
+            if query_set.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
@@ -215,6 +219,9 @@ class ConversationMemory:
         for note in notes:
             doc_tokens = json.loads(note[3]) if note[3] else []
             if not doc_tokens:
+                continue
+            # ⚡ Bolt: short-circuit vectorization if no overlapping terms
+            if query_set.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
