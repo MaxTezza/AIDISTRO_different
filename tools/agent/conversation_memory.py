@@ -182,6 +182,7 @@ class ConversationMemory:
         df_cache = {row[0]: row[1] for row in df_rows}
 
         query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
+        query_terms = set(query_tokens)
 
         # Score all conversations
         rows = conn.execute(
@@ -192,7 +193,7 @@ class ConversationMemory:
         scored = []
         for row in rows:
             doc_tokens = json.loads(row[5]) if row[5] else []
-            if not doc_tokens:
+            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
@@ -214,7 +215,7 @@ class ConversationMemory:
         ).fetchall()
         for note in notes:
             doc_tokens = json.loads(note[3]) if note[3] else []
-            if not doc_tokens:
+            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
