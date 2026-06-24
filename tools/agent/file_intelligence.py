@@ -311,10 +311,11 @@ def search(query, top_k=20, file_type=None, days=None):
     ).fetchall()
 
     # Score each document
+    query_terms_set = set(query_tokens)
     scored = []
     for row in rows:
         doc_tokens = json.loads(row[5]) if row[5] else []
-        if not doc_tokens:
+        if not doc_tokens or query_terms_set.isdisjoint(doc_tokens):
             continue
 
         doc_tf = Counter(doc_tokens)
