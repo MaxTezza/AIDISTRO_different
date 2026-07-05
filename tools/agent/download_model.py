@@ -15,7 +15,7 @@ import sys
 import urllib.request
 import urllib.error
 
-MODEL_DIR = os.path.expanduser("~/.cache/ai-distro/models")
+MODEL_DIR = os.environ.get("AI_DISTRO_MODEL_DIR", os.path.expanduser("~/.cache/ai-distro/models"))
 CONFIG_PATH = os.environ.get(
     "AI_DISTRO_CONFIG",
     os.path.expanduser("~/AI_Distro/configs/agent.json")

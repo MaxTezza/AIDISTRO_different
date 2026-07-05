@@ -61,7 +61,8 @@ RUN apt-get update && apt-get install -y \
 
 # Download model (cached unless configs/agent.json changes)
 ENV AI_DISTRO_CONFIG=/etc/ai-distro/agent.json
-RUN python3 /app/tools/agent/download_model.py || echo "Model download skipped"
+ENV AI_DISTRO_MODEL_DIR=/var/lib/ai-distro/models
+RUN mkdir -p /var/lib/ai-distro/models && python3 /app/tools/agent/download_model.py || echo "Model download skipped"
 
 # Copy the rest of the changing source files (tools, assets, skills, entrypoint)
 COPY tools /app/tools
@@ -82,8 +83,9 @@ ENV AI_DISTRO_CONFIRM_DIR=/var/lib/ai-distro/confirmations
 ENV AI_DISTRO_INTENT_PARSER=/app/tools/agent/intent_parser.py
 ENV AI_DISTRO_BRAIN=/app/tools/agent/brain.py
 ENV AI_DISTRO_SKILLS_DIR=/app/skills/core
+ENV AI_DISTRO_MODEL_DIR=/var/lib/ai-distro/models
 
-RUN mkdir -p /var/lib/ai-distro/memory /var/lib/ai-distro/confirmations && \
+RUN mkdir -p /var/lib/ai-distro/memory /var/lib/ai-distro/confirmations /var/lib/ai-distro/models && \
     chown -R aidistro:aidistro /var/lib/ai-distro /etc/ai-distro /app
 
 USER aidistro

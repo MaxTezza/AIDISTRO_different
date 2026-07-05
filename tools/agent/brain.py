@@ -16,7 +16,7 @@ CONFIG_PATH = Path(os.environ.get(
     "AI_DISTRO_CONFIG",
     os.path.expanduser("~/AI_Distro/configs/agent.json")
 ))
-MODEL_DIR = Path(os.path.expanduser("~/.cache/ai-distro/models"))
+MODEL_DIR = Path(os.environ.get("AI_DISTRO_MODEL_DIR", os.path.expanduser("~/.cache/ai-distro/models")))
 SKILLS_CORE_DIR = Path(os.environ.get("AI_DISTRO_SKILLS_CORE_DIR", "src/skills/core"))
 SKILLS_DYNAMIC_DIR = Path(os.environ.get("AI_DISTRO_SKILLS_DYNAMIC_DIR", "src/skills/dynamic"))
 
