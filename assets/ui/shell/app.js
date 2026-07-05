@@ -2610,9 +2610,7 @@ const settingsToggle = document.getElementById("settings-toggle");
 const settingsModal = document.getElementById("settings-modal");
 const settingsClose = document.getElementById("settings-close");
 const settingsSave = document.getElementById("settings-save");
-const settingsProvider = document.getElementById("settings-provider");
-const settingsKeyContainer = document.getElementById("settings-key-container");
-const settingsApiKey = document.getElementById("settings-api-key");
+const settingsModelSelect = document.getElementById("settings-model-select");
 const settingsFeedback = document.getElementById("settings-feedback");
 
 if (settingsToggle && settingsModal) {
@@ -2627,18 +2625,10 @@ if (settingsToggle && settingsModal) {
         const data = await res.json();
         const cfg = data.config || {};
         const intel = cfg.intelligence || {};
-        const useCloud = intel.use_cloud === true;
-        const provider = intel.cloud_provider || "openai";
-        const key = intel.api_key || "";
-        
-        if (useCloud) {
-          settingsProvider.value = provider;
-          settingsKeyContainer.classList.remove("hidden");
-        } else {
-          settingsProvider.value = "local";
-          settingsKeyContainer.classList.add("hidden");
+        const localModel = intel.local_model || "llama-3.2-3b-instruct.gguf";
+        if (settingsModelSelect) {
+          settingsModelSelect.value = localModel;
         }
-        settingsApiKey.value = key;
       }
     } catch (e) {
       console.error("Failed to load settings config:", e);
@@ -2652,27 +2642,14 @@ if (settingsClose && settingsModal) {
   });
 }
 
-if (settingsProvider && settingsKeyContainer) {
-  settingsProvider.addEventListener("change", () => {
-    const val = settingsProvider.value;
-    if (val === "local") {
-      settingsKeyContainer.classList.add("hidden");
-    } else {
-      settingsKeyContainer.classList.remove("hidden");
-    }
-  });
-}
-
 if (settingsSave && settingsModal) {
   settingsSave.addEventListener("click", async () => {
     if (settingsFeedback) settingsFeedback.textContent = "Saving...";
-    const val = settingsProvider.value;
-    const key = settingsApiKey.value.trim();
+    const model = settingsModelSelect ? settingsModelSelect.value : "llama-3.2-3b-instruct.gguf";
     
     const configData = {
-      use_cloud: val !== "local",
-      cloud_provider: val === "local" ? "openai" : val,
-      api_key: key
+      use_cloud: false,
+      local_model: model
     };
     
     try {
@@ -2683,9 +2660,10 @@ if (settingsSave && settingsModal) {
       });
       
       if (res.ok) {
-        if (settingsFeedback) settingsFeedback.textContent = "Settings saved successfully!";
+        if (settingsFeedback) settingsFeedback.textContent = "Settings saved successfully! Restarting local brain...";
         setTimeout(() => {
           settingsModal.classList.add("hidden");
+          // Optionally notify agent of config change
         }, 1500);
       } else {
         const data = await res.json();

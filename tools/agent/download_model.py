@@ -38,6 +38,26 @@ MODEL_REGISTRY = {
         "file": "moondream2-text-model-f16.gguf",
         "size_mb": 3400,
     },
+    "qwen-2.5-3b-instruct.gguf": {
+        "repo": "Qwen/Qwen2.5-3B-Instruct-GGUF",
+        "file": "qwen2.5-3b-instruct-q4_k_m.gguf",
+        "size_mb": 2020,
+    },
+    "gemma-2-2b-it.gguf": {
+        "repo": "bartowski/gemma-2-2b-it-GGUF",
+        "file": "gemma-2-2b-it-Q4_K_M.gguf",
+        "size_mb": 1630,
+    },
+    "qwen-2.5-7b-instruct.gguf": {
+        "repo": "Qwen/Qwen2.5-7B-Instruct-GGUF",
+        "file": "qwen2.5-7b-instruct-q4_k_m.gguf",
+        "size_mb": 4720,
+    },
+    "llama-3.1-8b-instruct.gguf": {
+        "repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+        "file": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+        "size_mb": 4920,
+    },
 }
 
 

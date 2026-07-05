@@ -261,20 +261,18 @@
         
         <div class="onboarding-body">
           <h2>Select reasoning engine</h2>
-          <p>Choose between lightweight local inference or advanced cloud-based models.</p>
+          <p>Choose an offline open-source model. All reasoning and actions run locally on your CPU for free.</p>
           
           <div class="onboarding-form">
-            <label for="settings-provider">Model Provider</label>
-            <select id="settings-provider" class="provider-select">
-              <option value="local">Local Llama 3.2 (Offline, 1B)</option>
-              <option value="openai">Cloud GPT-4o-Mini (Smarter, requires key)</option>
-              <option value="gemini">Cloud Gemini 2.0 Flash (Smarter, requires key)</option>
+            <label for="settings-model-select">Local Model</label>
+            <select id="settings-model-select" class="provider-select">
+              <option value="llama-3.2-3b-instruct.gguf">Llama 3.2 3B (Default - Fast & Smart)</option>
+              <option value="qwen-2.5-3b-instruct.gguf">Qwen 2.5 3B (Recommended - Best at structured commands!)</option>
+              <option value="gemma-2-2b-it.gguf">Gemma 2 2B (Highly intelligent & optimized)</option>
+              <option value="qwen-2.5-7b-instruct.gguf">Qwen 2.5 7B (Ultra Smart - needs 8GB+ RAM)</option>
+              <option value="llama-3.1-8b-instruct.gguf">Llama 3.1 8B (Ultra Smart - needs 8GB+ RAM)</option>
+              <option value="llama-3.2-1b-instruct.gguf">Llama 3.2 1B (Ultra-lightweight - for slow machines)</option>
             </select>
-            
-            <div id="settings-key-container" class="hidden" style="margin-top: 15px; width: 100%;">
-              <label for="settings-api-key" style="display: block; margin-bottom: 8px;">API Key</label>
-              <input id="settings-api-key" type="password" placeholder="Paste your API key here" style="width: 100%; box-sizing: border-box;" />
-            </div>
           </div>
           <div id="settings-feedback" class="onboarding-note"></div>
         </div>
