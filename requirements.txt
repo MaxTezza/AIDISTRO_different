@@ -5,7 +5,7 @@ scipy
 tqdm
 llama-cpp-python
 dbus-python
-pygobject
+pygobject==3.48.2
 pyaudio
 SpeechRecognition
 pyttsx3
