@@ -2604,3 +2604,95 @@ loadAppTasks();
 loadNotifications();
 loadPluginCatalog();
 loadTagLibrary();
+
+// --- Intelligence Settings Modal ---
+const settingsToggle = document.getElementById("settings-toggle");
+const settingsModal = document.getElementById("settings-modal");
+const settingsClose = document.getElementById("settings-close");
+const settingsSave = document.getElementById("settings-save");
+const settingsProvider = document.getElementById("settings-provider");
+const settingsKeyContainer = document.getElementById("settings-key-container");
+const settingsApiKey = document.getElementById("settings-api-key");
+const settingsFeedback = document.getElementById("settings-feedback");
+
+if (settingsToggle && settingsModal) {
+  settingsToggle.addEventListener("click", async () => {
+    settingsModal.classList.remove("hidden");
+    if (settingsFeedback) settingsFeedback.textContent = "";
+    
+    // Load config from backend
+    try {
+      const res = await fetch(`${apiBase}/api/config`);
+      if (res.ok) {
+        const data = await res.json();
+        const cfg = data.config || {};
+        const intel = cfg.intelligence || {};
+        const useCloud = intel.use_cloud === true;
+        const provider = intel.cloud_provider || "openai";
+        const key = intel.api_key || "";
+        
+        if (useCloud) {
+          settingsProvider.value = provider;
+          settingsKeyContainer.classList.remove("hidden");
+        } else {
+          settingsProvider.value = "local";
+          settingsKeyContainer.classList.add("hidden");
+        }
+        settingsApiKey.value = key;
+      }
+    } catch (e) {
+      console.error("Failed to load settings config:", e);
+    }
+  });
+}
+
+if (settingsClose && settingsModal) {
+  settingsClose.addEventListener("click", () => {
+    settingsModal.classList.add("hidden");
+  });
+}
+
+if (settingsProvider && settingsKeyContainer) {
+  settingsProvider.addEventListener("change", () => {
+    const val = settingsProvider.value;
+    if (val === "local") {
+      settingsKeyContainer.classList.add("hidden");
+    } else {
+      settingsKeyContainer.classList.remove("hidden");
+    }
+  });
+}
+
+if (settingsSave && settingsModal) {
+  settingsSave.addEventListener("click", async () => {
+    if (settingsFeedback) settingsFeedback.textContent = "Saving...";
+    const val = settingsProvider.value;
+    const key = settingsApiKey.value.trim();
+    
+    const configData = {
+      use_cloud: val !== "local",
+      cloud_provider: val === "local" ? "openai" : val,
+      api_key: key
+    };
+    
+    try {
+      const res = await fetch(`${apiBase}/api/config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config: configData })
+      });
+      
+      if (res.ok) {
+        if (settingsFeedback) settingsFeedback.textContent = "Settings saved successfully!";
+        setTimeout(() => {
+          settingsModal.classList.add("hidden");
+        }, 1500);
+      } else {
+        const data = await res.json();
+        if (settingsFeedback) settingsFeedback.textContent = `Error: ${data.message || "Failed to save"}`;
+      }
+    } catch (e) {
+      if (settingsFeedback) settingsFeedback.textContent = `Network error: ${e.message}`;
+    }
+  });
+}

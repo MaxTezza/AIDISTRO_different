@@ -76,9 +76,10 @@ ENV AI_DISTRO_CONFIRM_DIR=/var/lib/ai-distro/confirmations
 ENV AI_DISTRO_INTENT_PARSER=/app/tools/agent/intent_parser.py
 ENV AI_DISTRO_BRAIN=/app/tools/agent/brain.py
 ENV AI_DISTRO_SKILLS_DIR=/app/skills/core
+ENV AI_DISTRO_CONFIG=/etc/ai-distro/agent.json
 
 RUN mkdir -p /var/lib/ai-distro/memory /var/lib/ai-distro/confirmations && \
-    chown -R aidistro:aidistro /var/lib/ai-distro /app
+    chown -R aidistro:aidistro /var/lib/ai-distro /etc/ai-distro /app
 
 USER aidistro
 

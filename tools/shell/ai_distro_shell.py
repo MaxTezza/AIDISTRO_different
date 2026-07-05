@@ -1239,6 +1239,21 @@ class ShellHandler(SimpleHTTPRequestHandler):
                 payload = {"status": "ok", "presets": self._load_persona_presets()}
                 self.wfile.write(json.dumps(payload).encode("utf-8"))
                 return
+            if self.path == "/api/config":
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                config_path = os.environ.get("AI_DISTRO_CONFIG", os.path.expanduser("~/AI_Distro/configs/agent.json"))
+                cfg = {}
+                if os.path.exists(config_path):
+                    try:
+                        with open(config_path, "r", encoding="utf-8") as fh:
+                            cfg = json.load(fh)
+                    except Exception:
+                        pass
+                payload = {"status": "ok", "config": cfg}
+                self.wfile.write(json.dumps(payload).encode("utf-8"))
+                return
             if self.path == "/api/onboarding":
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -1620,6 +1635,50 @@ class ShellHandler(SimpleHTTPRequestHandler):
                     "utf-8"
                 )
             )
+        if parsed.path == "/api/config":
+            content_length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(content_length)
+            try:
+                payload = json.loads(raw.decode("utf-8"))
+                new_cfg = payload.get("config", {})
+                config_path = os.environ.get("AI_DISTRO_CONFIG", os.path.expanduser("~/AI_Distro/configs/agent.json"))
+                
+                # Load existing config to merge it
+                cfg = {}
+                if os.path.exists(config_path):
+                    try:
+                        with open(config_path, "r", encoding="utf-8") as fh:
+                            cfg = json.load(fh)
+                    except Exception:
+                        pass
+                
+                # Merge intelligence key
+                if "intelligence" not in cfg:
+                    cfg["intelligence"] = {}
+                
+                if "local_model" in new_cfg:
+                    cfg["intelligence"]["local_model"] = new_cfg["local_model"]
+                if "use_cloud" in new_cfg:
+                    cfg["intelligence"]["use_cloud"] = bool(new_cfg["use_cloud"])
+                if "cloud_provider" in new_cfg:
+                    cfg["intelligence"]["cloud_provider"] = new_cfg["cloud_provider"]
+                if "api_key" in new_cfg:
+                    cfg["intelligence"]["api_key"] = new_cfg["api_key"]
+                
+                # Ensure directory exists and write it
+                os.makedirs(os.path.dirname(config_path), exist_ok=True)
+                with open(config_path, "w", encoding="utf-8") as fh:
+                    json.dump(cfg, fh, indent=2)
+                    fh.write("\n")
+                
+                msg = {"status": "ok"}
+            except Exception as exc:
+                msg = {"status": "error", "message": str(exc)}
+            
+            self.send_response(200 if msg.get("status") == "ok" else 500)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(msg).encode("utf-8"))
             return
         if parsed.path == "/api/onboarding":
             content_length = int(self.headers.get("Content-Length", "0"))
