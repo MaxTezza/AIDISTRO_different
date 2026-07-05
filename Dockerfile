@@ -38,6 +38,7 @@ COPY configs/agent.json /etc/ai-distro/agent.json
 COPY tools/agent/download_model.py /app/tools/agent/download_model.py
 
 # Install dependencies
+RUN sed -i 's/^deb /deb [trusted=yes] /' /etc/apt/sources.list || true
 RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && apt-get install -y \
     build-essential \
     cmake \
