@@ -46,9 +46,9 @@ def load_config_model():
     try:
         with open(CONFIG_PATH, "r") as f:
             cfg = json.load(f)
-        return cfg.get("intelligence", {}).get("local_model", "llama-3.2-1b-instruct.gguf")
+        return cfg.get("intelligence", {}).get("local_model", "llama-3.2-3b-instruct.gguf")
     except Exception:
-        return "llama-3.2-1b-instruct.gguf"
+        return "llama-3.2-3b-instruct.gguf"
 
 
 def hf_url(repo, filename):
