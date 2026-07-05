@@ -70,6 +70,7 @@ ENV AI_DISTRO_CORE_SOCKET=/tmp/ai-core.sock
 ENV AI_DISTRO_CORE_STATE_DB=/tmp/ai-core-state.db
 ENV AI_DISTRO_CORE_CONTEXT_DIR=/tmp/ai-core-context
 ENV AI_DISTRO_SHELL_STATIC_DIR=/app/assets/ui/shell
+ENV AI_DISTRO_SHELL_HOST=0.0.0.0
 ENV AI_DISTRO_MEMORY_DIR=/var/lib/ai-distro/memory
 ENV AI_DISTRO_CONFIRM_DIR=/var/lib/ai-distro/confirmations
 ENV AI_DISTRO_INTENT_PARSER=/app/tools/agent/intent_parser.py
