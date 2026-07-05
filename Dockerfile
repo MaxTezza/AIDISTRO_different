@@ -38,7 +38,10 @@ COPY configs/agent.json /etc/ai-distro/agent.json
 COPY tools/agent/download_model.py /app/tools/agent/download_model.py
 
 # Install dependencies
-RUN sed -i 's/^deb /deb [trusted=yes] /' /etc/apt/sources.list || true
+RUN rm -f /etc/apt/sources.list.d/debian.sources && \
+    echo "deb [trusted=yes] http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list && \
+    echo "deb [trusted=yes] http://deb.debian.org/debian bookworm-updates main" >> /etc/apt/sources.list && \
+    echo "deb [trusted=yes] http://deb.debian.org/debian-security bookworm-security main" >> /etc/apt/sources.list
 RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && apt-get install -y \
     build-essential \
     cmake \
