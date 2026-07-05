@@ -1463,9 +1463,9 @@ class ShellHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode("utf-8"))
             return
 
-        self.send_error(404, "unknown api")
-        return
-    super().do_GET()
+            self.send_error(404, "unknown api")
+            return
+        super().do_GET()
 
     def do_POST(self):
         parsed = urlparse(self.path)

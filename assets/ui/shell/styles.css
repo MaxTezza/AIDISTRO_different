@@ -1099,3 +1099,17 @@ input {
     grid-template-columns: 1fr;
   }
 }
+
+#mic-button.active {
+  background: rgba(34, 197, 94, 0.2) !important;
+  border-color: rgba(34, 197, 94, 0.6) !important;
+  color: #86efac !important;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.3);
+  animation: mic-pulse 1.8s infinite ease-in-out;
+}
+
+@keyframes mic-pulse {
+  0% { box-shadow: 0 0 0 0px rgba(34, 197, 94, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0px rgba(34, 197, 94, 0); }
+}

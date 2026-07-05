@@ -62,7 +62,7 @@ let pluginCatalogData = [];
 let allApps = [];
 
 const apiBase = window.location.origin;
-const APP_VERSION = "2026-04-12.1"; // Updated for Unification
+const APP_VERSION = "2026-07-04.1"; // Updated for Unification
 const ONBOARDING_ENABLED = true;
 
 // --- Command Bar & Apps ---
@@ -160,8 +160,6 @@ const updateWidgets = async () => {
 
 setInterval(updateWidgets, 5000);
 updateWidgets();
-
-const apiBase = window.location.origin;
 let recognition = null;
 let voiceEnabled = true;
 let voiceListeningWanted = false;
@@ -2095,7 +2093,7 @@ const maybeStartOnboarding = async () => {
   if (onboardingCompleted) {
     onboarding.classList.add("hidden");
     announceOnboardingDecision("skipped", completedRemote ? "remote:completed" : "local:completed");
-    setHelperHint(`Tip: click Start listening, then speak your command directly.`);
+    setHelperHint(`Tip: click Start listening, then speak your command directly. [UI v${APP_VERSION}]`);
     if (voiceEnabled) {
       startVoiceListening();
     }

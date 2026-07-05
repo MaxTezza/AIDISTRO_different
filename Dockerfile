@@ -28,15 +28,18 @@ RUN groupadd -r aidistro && useradd -r -g aidistro aidistro
 
 WORKDIR /app
 
-# Copy binary from builder
+# Copy binaries from builder
 COPY --from=builder /usr/src/ai-distro/src/rust/target/release/ai-distro-agent /usr/local/bin/
+COPY --from=builder /usr/src/ai-distro/src/rust/target/release/ai-distro-core /usr/local/bin/
 
-# Copy python tools and skill manifests
+# Copy python tools, skill manifests, assets, and entrypoint
 COPY tools /app/tools
+COPY assets /app/assets
+COPY entrypoint.sh /app/entrypoint.sh
 COPY src/skills /app/skills
 COPY configs /etc/ai-distro
 COPY requirements.txt /app/
-
+ 
 # Install dependencies and download model
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -62,7 +65,11 @@ RUN apt-get update && apt-get install -y \
 RUN python3 /app/tools/agent/download_model.py || echo "Model download skipped (will download on first run)"
 
 # Set default env
-ENV AI_DISTRO_IPC_SOCKET=/tmp/ai-distro-agent.sock
+ENV AI_DISTRO_IPC_SOCKET=/tmp/ai-distro.sock
+ENV AI_DISTRO_CORE_SOCKET=/tmp/ai-core.sock
+ENV AI_DISTRO_CORE_STATE_DB=/tmp/ai-core-state.db
+ENV AI_DISTRO_CORE_CONTEXT_DIR=/tmp/ai-core-context
+ENV AI_DISTRO_SHELL_STATIC_DIR=/app/assets/ui/shell
 ENV AI_DISTRO_MEMORY_DIR=/var/lib/ai-distro/memory
 ENV AI_DISTRO_CONFIRM_DIR=/var/lib/ai-distro/confirmations
 ENV AI_DISTRO_INTENT_PARSER=/app/tools/agent/intent_parser.py
@@ -74,4 +81,4 @@ RUN mkdir -p /var/lib/ai-distro/memory /var/lib/ai-distro/confirmations && \
 
 USER aidistro
 
-ENTRYPOINT ["ai-distro-agent"]
+ENTRYPOINT ["/app/entrypoint.sh"]
