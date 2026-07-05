@@ -42,7 +42,7 @@ RUN rm -f /etc/apt/sources.list.d/debian.sources && \
     echo "deb [trusted=yes] http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list && \
     echo "deb [trusted=yes] http://deb.debian.org/debian bookworm-updates main" >> /etc/apt/sources.list && \
     echo "deb [trusted=yes] http://deb.debian.org/debian-security bookworm-security main" >> /etc/apt/sources.list
-RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && apt-get install -y -o APT::Get::Check-Space=false \
+RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && apt-get install -y -o Dir::Cache::Archives=/tmp -o APT::Get::Check-Space=false \
     build-essential \
     cmake \
     pkg-config \
