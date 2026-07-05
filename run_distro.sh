@@ -19,11 +19,18 @@ fi
 echo "Building Docker image (this may take a few minutes)..."
 docker build -t ai-distro:latest .
 
+# Setup host volume directory on the spacious /home partition
+VOLUME_DIR="/home/jmt3/.config/ai-distro"
+echo "Setting up persistent host configuration directory at $VOLUME_DIR..."
+mkdir -p "$VOLUME_DIR"
+chmod 777 "$VOLUME_DIR"
+
 # Run container
 echo "Launching container..."
 docker run -d \
   --name ai-distro \
   -p 17842:17842 \
+  -v "$VOLUME_DIR":/var/lib/ai-distro \
   --restart unless-stopped \
   ai-distro:latest
 

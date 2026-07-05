@@ -4,6 +4,10 @@ set -e
 # Cleanup old sockets
 rm -f /tmp/ai-distro.sock /tmp/ai-core.sock
 
+# Ensure local model is present
+echo "Checking local reasoning model..."
+python3 /app/tools/agent/download_model.py || echo "Warning: model download check failed, starting agent anyway."
+
 # Start agent
 echo "Starting agent..."
 ai-distro-agent &

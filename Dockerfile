@@ -59,10 +59,9 @@ RUN apt-get update && apt-get install -y \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Download model (cached unless configs/agent.json changes)
+# Setup model configuration environment
 ENV AI_DISTRO_CONFIG=/etc/ai-distro/agent.json
 ENV AI_DISTRO_MODEL_DIR=/var/lib/ai-distro/models
-RUN mkdir -p /var/lib/ai-distro/models && python3 /app/tools/agent/download_model.py || echo "Model download skipped"
 
 # Copy the rest of the changing source files (tools, assets, skills, entrypoint)
 COPY tools /app/tools
