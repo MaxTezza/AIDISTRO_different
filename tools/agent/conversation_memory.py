@@ -207,7 +207,7 @@ class ConversationMemory:
             filtered_notes.append((note, doc_tokens))
             all_needed_terms.update(doc_tokens)
 
-        df_cache = {}
+        df_cache = {term: 1 for term in all_needed_terms}
         terms_list = list(all_needed_terms)
         for i in range(0, len(terms_list), 999):
             chunk = terms_list[i:i+999]
