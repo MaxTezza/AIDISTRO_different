@@ -311,10 +311,14 @@ def search(query, top_k=20, file_type=None, days=None):
     ).fetchall()
 
     # Score each document
+    # ⚡ Bolt: Use set intersection to short-circuit expensive TF-IDF calculations for documents
+    # that have zero term overlap with the query. This optimization avoids processing non-matching
+    # documents entirely, significantly improving search speed.
+    query_terms_set = set(query_vec.keys())
     scored = []
     for row in rows:
         doc_tokens = json.loads(row[5]) if row[5] else []
-        if not doc_tokens:
+        if not doc_tokens or (query_terms_set and query_terms_set.isdisjoint(doc_tokens)):
             continue
 
         doc_tf = Counter(doc_tokens)
