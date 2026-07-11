@@ -7,3 +7,7 @@
 ## 2026-06-13 - TF-IDF Vectorization Disjoint Set Optimization
 **Learning:** When computing cosine similarity between a sparse query vector (TF-IDF) and a large corpus of documents (like in `tools/agent/conversation_memory.py`), fully vectorizing every document before determining if they share any terms is computationally wasteful. Documents with zero overlapping terms will always have a cosine similarity of 0.
 **Action:** Always add a fast, built-in set intersection check (e.g., `set(query_tokens).isdisjoint(doc_tokens)`) to short-circuit the scoring loop. This simple check reduces computational overhead by ~30% in Python by skipping expensive TF-IDF calculations entirely for non-matching documents.
+
+## 2026-06-13 - File Intelligence Disjoint Set Optimization
+**Learning:** In the `search` function of `tools/agent/file_intelligence.py`, iterating over documents and converting them into a Counter (to calculate `doc_tf`) is unnecessarily computationally expensive for documents that do not overlap with the search query. By applying the disjoint set check prior to setting up the Counter and `doc_vec`, we skip these expensive loop computations for entirely non-matching documents.
+**Action:** When computing similarity scores, always short-circuit vectorization if `query_terms_set.isdisjoint(doc_tokens)` returns true to bypass vector computations for non-overlapping data.
