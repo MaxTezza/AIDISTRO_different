@@ -7,3 +7,7 @@
 ## 2026-06-13 - TF-IDF Vectorization Disjoint Set Optimization
 **Learning:** When computing cosine similarity between a sparse query vector (TF-IDF) and a large corpus of documents (like in `tools/agent/conversation_memory.py`), fully vectorizing every document before determining if they share any terms is computationally wasteful. Documents with zero overlapping terms will always have a cosine similarity of 0.
 **Action:** Always add a fast, built-in set intersection check (e.g., `set(query_tokens).isdisjoint(doc_tokens)`) to short-circuit the scoring loop. This simple check reduces computational overhead by ~30% in Python by skipping expensive TF-IDF calculations entirely for non-matching documents.
+
+## 2024-07-01 - Optimizing TF-IDF with batched fetching
+**Learning:** In SQLite/Python, fetching the entire `doc_freq` table (the whole vocabulary) into memory to avoid N+1 queries during TF-IDF calculation creates a massive bottleneck when the vocabulary is large. It seems like an optimization but actually backfires.
+**Action:** Use a two-pass approach. First, identify matching documents and collect all unique terms they contain. Second, fetch document frequencies *only* for those needed terms using batched `IN (...)` queries (chunked by 999 to respect SQLite limits). This avoids both the N+1 problem and full table scans.
