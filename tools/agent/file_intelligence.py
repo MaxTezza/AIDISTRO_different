@@ -312,9 +312,14 @@ def search(query, top_k=20, file_type=None, days=None):
 
     # Score each document
     scored = []
+    # ⚡ Bolt: Convert query terms to a set for O(1) membership testing
+    query_terms_set = set(query_terms)
+
     for row in rows:
         doc_tokens = json.loads(row[5]) if row[5] else []
-        if not doc_tokens:
+        # ⚡ Bolt: Use isdisjoint to quickly skip documents with zero overlapping terms,
+        # avoiding expensive Counter instantiation and TF-IDF math.
+        if not doc_tokens or query_terms_set.isdisjoint(doc_tokens):
             continue
 
         doc_tf = Counter(doc_tokens)
