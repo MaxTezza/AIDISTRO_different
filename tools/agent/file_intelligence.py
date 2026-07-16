@@ -274,6 +274,7 @@ def search(query, top_k=20, file_type=None, days=None):
 
     # ⚡ Bolt: Cache document frequencies for query terms to avoid N+1 queries
     query_terms = list(query_tf.keys())
+    query_terms_set = set(query_terms)
     df_map = {}
     for i in range(0, len(query_terms), 999):
         chunk = query_terms[i:i+999]
@@ -314,7 +315,7 @@ def search(query, top_k=20, file_type=None, days=None):
     scored = []
     for row in rows:
         doc_tokens = json.loads(row[5]) if row[5] else []
-        if not doc_tokens:
+        if not doc_tokens or (query_terms_set and query_terms_set.isdisjoint(doc_tokens)):
             continue
 
         doc_tf = Counter(doc_tokens)
@@ -341,8 +342,8 @@ def search(query, top_k=20, file_type=None, days=None):
                 "path": row[0],
                 "filename": row[1],
                 "extension": row[2],
-                "size_kb": round(row[3] / 1024, 1),
-                "modified": datetime.fromtimestamp(row[4]).strftime("%Y-%m-%d %H:%M"),
+                "size_kb": round((row[3] or 0) / 1024, 1),
+                "modified": datetime.fromtimestamp(row[4] or 0).strftime("%Y-%m-%d %H:%M"),
                 "similarity": round(sim, 4),
                 "preview": row[6][:200] if row[6] else "",
             })
