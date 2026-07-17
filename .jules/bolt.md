@@ -7,3 +7,9 @@
 ## 2026-06-13 - TF-IDF Vectorization Disjoint Set Optimization
 **Learning:** When computing cosine similarity between a sparse query vector (TF-IDF) and a large corpus of documents (like in `tools/agent/conversation_memory.py`), fully vectorizing every document before determining if they share any terms is computationally wasteful. Documents with zero overlapping terms will always have a cosine similarity of 0.
 **Action:** Always add a fast, built-in set intersection check (e.g., `set(query_tokens).isdisjoint(doc_tokens)`) to short-circuit the scoring loop. This simple check reduces computational overhead by ~30% in Python by skipping expensive TF-IDF calculations entirely for non-matching documents.
+
+## 2024-05-18 - Python SQLite N+1 Bottleneck in Local RAG
+
+**Learning:** When evaluating performance in Python scripts interacting with an SQLite database (like in `tools/agent/conversation_memory.py`), be highly suspicious of database access within nested loops (such as iterating through terms for TF-IDF calculations across multiple documents). This structure commonly results in severe N+1 query performance degradation. Fetching document frequencies term by term in a loop for all matching documents severely impacts performance, especially for larger datasets.
+
+**Action:** Implement a two-pass approach. First, identify matching documents (using `isdisjoint()` for fast filtering). Second, collect all unique terms from those matched documents and fetch their document frequencies from SQLite using chunked, batched `IN (...)` queries before calculating the vectors. This avoids full table scans while preventing N+1 loop bottlenecks.
