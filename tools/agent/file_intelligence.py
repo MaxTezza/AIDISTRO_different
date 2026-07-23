@@ -317,11 +317,12 @@ def search(query, top_k=20, file_type=None, days=None):
         if not doc_tokens:
             continue
 
-        doc_tf = Counter(doc_tokens)
         total_d = len(doc_tokens) or 1
         doc_vec = {}
-        for term, count in doc_tf.items():
-            if term in query_vec:
+        # ⚡ Bolt: count only query terms instead of full document Counter
+        for term in query_vec:
+            count = doc_tokens.count(term)
+            if count > 0:
                 tf = count / total_d
                 # ⚡ Bolt: Use pre-calculated IDF instead of querying DB in a loop
                 doc_vec[term] = tf * term_idfs[term]
