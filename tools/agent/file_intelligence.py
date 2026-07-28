@@ -274,6 +274,7 @@ def search(query, top_k=20, file_type=None, days=None):
 
     # ⚡ Bolt: Cache document frequencies for query terms to avoid N+1 queries
     query_terms = list(query_tf.keys())
+    query_terms_set = set(query_terms)
     df_map = {}
     for i in range(0, len(query_terms), 999):
         chunk = query_terms[i:i+999]
@@ -310,11 +311,16 @@ def search(query, top_k=20, file_type=None, days=None):
         params
     ).fetchall()
 
+    # ⚡ Bolt: pre-calculate mag_q outside the document scoring loop
+    mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values()))
+
+
     # Score each document
     scored = []
     for row in rows:
         doc_tokens = json.loads(row[5]) if row[5] else []
-        if not doc_tokens:
+        # ⚡ Bolt: short-circuit to avoid expensive TF-IDF calculations for non-matching documents
+        if not doc_tokens or (query_terms_set and query_terms_set.isdisjoint(doc_tokens)):
             continue
 
         doc_tf = Counter(doc_tokens)
@@ -332,7 +338,6 @@ def search(query, top_k=20, file_type=None, days=None):
         # Cosine similarity
         common = set(query_vec.keys()) & set(doc_vec.keys())
         dot = sum(query_vec[k] * doc_vec[k] for k in common)
-        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values()))
         mag_d = math.sqrt(sum(v ** 2 for v in doc_vec.values()))
         sim = dot / (mag_q * mag_d) if mag_q and mag_d else 0
 
