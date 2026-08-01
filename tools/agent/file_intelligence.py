@@ -310,6 +310,9 @@ def search(query, top_k=20, file_type=None, days=None):
         params
     ).fetchall()
 
+    # Pre-calculate query magnitude to avoid O(N) redundant mathematical overhead
+    mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0
+
     # Score each document
     scored = []
     for row in rows:
@@ -332,7 +335,6 @@ def search(query, top_k=20, file_type=None, days=None):
         # Cosine similarity
         common = set(query_vec.keys()) & set(doc_vec.keys())
         dot = sum(query_vec[k] * doc_vec[k] for k in common)
-        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values()))
         mag_d = math.sqrt(sum(v ** 2 for v in doc_vec.values()))
         sim = dot / (mag_q * mag_d) if mag_q and mag_d else 0
 
