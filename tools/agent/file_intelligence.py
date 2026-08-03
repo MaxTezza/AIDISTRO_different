@@ -312,9 +312,18 @@ def search(query, top_k=20, file_type=None, days=None):
 
     # Score each document
     scored = []
+
+    # ⚡ Bolt: Pre-calculate loop invariants
+    query_terms_set = set(query_vec.keys())
+    mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values()))
+
     for row in rows:
         doc_tokens = json.loads(row[5]) if row[5] else []
         if not doc_tokens:
+            continue
+
+        # ⚡ Bolt: Short-circuit scoring for documents with no overlapping terms
+        if query_terms_set and query_terms_set.isdisjoint(doc_tokens):
             continue
 
         doc_tf = Counter(doc_tokens)
@@ -332,7 +341,6 @@ def search(query, top_k=20, file_type=None, days=None):
         # Cosine similarity
         common = set(query_vec.keys()) & set(doc_vec.keys())
         dot = sum(query_vec[k] * doc_vec[k] for k in common)
-        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values()))
         mag_d = math.sqrt(sum(v ** 2 for v in doc_vec.values()))
         sim = dot / (mag_q * mag_d) if mag_q and mag_d else 0
 
@@ -341,8 +349,8 @@ def search(query, top_k=20, file_type=None, days=None):
                 "path": row[0],
                 "filename": row[1],
                 "extension": row[2],
-                "size_kb": round(row[3] / 1024, 1),
-                "modified": datetime.fromtimestamp(row[4]).strftime("%Y-%m-%d %H:%M"),
+                "size_kb": round((row[3] or 0) / 1024, 1),
+                "modified": datetime.fromtimestamp(row[4] or 0).strftime("%Y-%m-%d %H:%M"),
                 "similarity": round(sim, 4),
                 "preview": row[6][:200] if row[6] else "",
             })
