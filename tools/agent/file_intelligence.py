@@ -310,6 +310,9 @@ def search(query, top_k=20, file_type=None, days=None):
         params
     ).fetchall()
 
+    # Pre-calculate query magnitude to avoid O(N) redundant mathematical overhead
+    mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0
+
     # Score each document
     scored = []
 

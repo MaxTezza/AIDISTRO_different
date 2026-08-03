@@ -7,6 +7,9 @@
 ## 2026-06-13 - TF-IDF Vectorization Disjoint Set Optimization
 **Learning:** When computing cosine similarity between a sparse query vector (TF-IDF) and a large corpus of documents (like in `tools/agent/conversation_memory.py`), fully vectorizing every document before determining if they share any terms is computationally wasteful. Documents with zero overlapping terms will always have a cosine similarity of 0.
 **Action:** Always add a fast, built-in set intersection check (e.g., `set(query_tokens).isdisjoint(doc_tokens)`) to short-circuit the scoring loop. This simple check reduces computational overhead by ~30% in Python by skipping expensive TF-IDF calculations entirely for non-matching documents.
+## 2023-10-27 - Pre-calculate loop invariant to avoid O(N) redundant mathematical overhead
+**Learning:** Found that vector magnitude for constant data (like a search query) in a similarity search loop was being repeatedly computed (sum and sqrt) for every evaluated document.
+**Action:** When implementing semantic search or vector matching algorithms, always ensure to compute fixed invariants like `mag_q` (magnitude of the query vector) outside the O(N) evaluation loop to save mathematical operations per document.
 ## 2026-06-15 - TF-IDF Pre-calculation Optimization
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
