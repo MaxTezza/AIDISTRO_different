@@ -177,11 +177,6 @@ class ConversationMemory:
         num_docs_row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
         num_docs = max(num_docs_row[0], 1)
 
-        # Load doc frequencies into memory
-        df_rows = conn.execute("SELECT term, count FROM doc_freq").fetchall()
-        df_cache = {row[0]: row[1] for row in df_rows}
-
-        query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
         query_terms = set(query_tokens)
 
         # Score all conversations
@@ -190,13 +185,57 @@ class ConversationMemory:
             "FROM conversations ORDER BY timestamp DESC LIMIT 500"
         ).fetchall()
 
-        scored = []
+        # Also search notes
+        notes = conn.execute(
+            "SELECT id, timestamp, content, tokens FROM notes ORDER BY timestamp DESC LIMIT 200"
+        ).fetchall()
+
+        matching_rows = []
+        matching_notes = []
+        needed_terms = set(query_tokens)
+
         for row in rows:
             doc_tokens = json.loads(row[5]) if row[5] else []
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
+            matching_rows.append((row, doc_tokens))
+            needed_terms.update(doc_tokens)
+
+        for note in notes:
+            doc_tokens = json.loads(note[3]) if note[3] else []
+            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
+                continue
+            matching_notes.append((note, doc_tokens))
+            needed_terms.update(doc_tokens)
+
+        # Load doc frequencies into memory ONLY for needed terms
+        df_cache = {}
+        needed_terms_list = list(needed_terms)
+        for i in range(0, len(needed_terms_list), 999):
+            chunk = needed_terms_list[i:i+999]
+            placeholders = ",".join(["?"] * len(chunk))
+            df_rows = conn.execute(
+                f"SELECT term, count FROM doc_freq WHERE term IN ({placeholders})", chunk
+            ).fetchall()
+            for term, count in df_rows:
+                df_cache[term] = count
+
+        query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
+
+        # ⚡ Bolt: Pre-calculate query magnitude to avoid O(N) redundant calculations
+        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0.0
+
+        scored = []
+        for row, doc_tokens in matching_rows:
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+            # Inline cosine similarity for speed, using precalculated mag_q
+            common = set(query_vec.keys()) & set(doc_vec.keys())
+            if not common:
+                continue
+            dot = sum(query_vec[k] * doc_vec[k] for k in common)
+            mag_d = math.sqrt(sum(v ** 2 for v in doc_vec.values()))
+            sim = (dot / (mag_q * mag_d)) if mag_q > 0 and mag_d > 0 else 0.0
+
             # Boost by importance
             sim *= row[6]
             if sim > 0.05:
@@ -209,16 +248,16 @@ class ConversationMemory:
                     "similarity": round(sim, 4),
                 })
 
-        # Also search notes
-        notes = conn.execute(
-            "SELECT id, timestamp, content, tokens FROM notes ORDER BY timestamp DESC LIMIT 200"
-        ).fetchall()
-        for note in notes:
-            doc_tokens = json.loads(note[3]) if note[3] else []
-            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
-                continue
+        for note, doc_tokens in matching_notes:
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+            # Inline cosine similarity for speed, using precalculated mag_q
+            common = set(query_vec.keys()) & set(doc_vec.keys())
+            if not common:
+                continue
+            dot = sum(query_vec[k] * doc_vec[k] for k in common)
+            mag_d = math.sqrt(sum(v ** 2 for v in doc_vec.values()))
+            sim = (dot / (mag_q * mag_d)) if mag_q > 0 and mag_d > 0 else 0.0
+
             if sim > 0.05:
                 scored.append({
                     "id": f"note-{note[0]}",
