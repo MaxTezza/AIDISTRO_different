@@ -155,7 +155,12 @@ class BayesianEngine:
             beta_val = 1.0 if outcome == "positive" else 2.0
             c.execute(
                 """INSERT INTO beliefs (context_key, action, alpha, beta, last_updated, total_observations)
-                   VALUES (?, ?, ?, ?, ?, 1)""",
+                   VALUES (?, ?, ?, ?, ?, 1)
+                   ON CONFLICT(context_key, action) DO UPDATE SET
+                   alpha = (alpha * 0.9) + (excluded.alpha - 1.0),
+                   beta = (beta * 0.9) + (excluded.beta - 1.0),
+                   last_updated = excluded.last_updated,
+                   total_observations = total_observations + 1""",
                 (ctx, action, alpha, beta_val, now),
             )
 
