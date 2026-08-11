@@ -173,28 +173,61 @@ class ConversationMemory:
 
         conn = sqlite3.connect(self.db_path)
 
-        # OPTIMIZATION: Cache document count and term frequencies to prevent N+1 query bottleneck
+        # Get total document count
         num_docs_row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
         num_docs = max(num_docs_row[0], 1)
 
-        # Load doc frequencies into memory
-        df_rows = conn.execute("SELECT term, count FROM doc_freq").fetchall()
-        df_cache = {row[0]: row[1] for row in df_rows}
-
-        query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-        query_terms = set(query_tokens)
-
-        # Score all conversations
+        # Score all conversations and notes, but first filter disjoint tokens
         rows = conn.execute(
             "SELECT id, timestamp, user_message, ai_response, context, tokens, importance "
             "FROM conversations ORDER BY timestamp DESC LIMIT 500"
         ).fetchall()
 
-        scored = []
+        notes = conn.execute(
+            "SELECT id, timestamp, content, tokens FROM notes ORDER BY timestamp DESC LIMIT 200"
+        ).fetchall()
+
+        query_terms = set(query_tokens)
+
+        # ⚡ Bolt: Only load IDF weights for terms actually present in the query and matched documents
+        # instead of the entire document vocabulary to prevent memory bloat and O(V) full table scans
+        required_terms = set(query_tokens)
+        relevant_docs = []
+        relevant_notes = []
+
         for row in rows:
             doc_tokens = json.loads(row[5]) if row[5] else []
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
+            required_terms.update(doc_tokens)
+            relevant_docs.append((row, doc_tokens))
+
+        for note in notes:
+            doc_tokens = json.loads(note[3]) if note[3] else []
+            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
+                continue
+            required_terms.update(doc_tokens)
+            relevant_notes.append((note, doc_tokens))
+
+        # ⚡ Bolt: Batch query the required document frequencies
+        df_cache = {}
+        required_terms_list = list(required_terms)
+        for i in range(0, len(required_terms_list), 999):
+            chunk = required_terms_list[i:i+999]
+            placeholders = ",".join(["?"] * len(chunk))
+            df_rows = conn.execute(f"SELECT term, count FROM doc_freq WHERE term IN ({placeholders})", chunk).fetchall()
+            for r in df_rows:
+                df_cache[r[0]] = r[1]
+
+        # Fill missing terms with 1 to avoid query errors or dict misses later
+        for term in required_terms_list:
+            if term not in df_cache:
+                df_cache[term] = 1
+
+        query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
+
+        scored = []
+        for row, doc_tokens in relevant_docs:
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
             # Boost by importance
@@ -209,14 +242,7 @@ class ConversationMemory:
                     "similarity": round(sim, 4),
                 })
 
-        # Also search notes
-        notes = conn.execute(
-            "SELECT id, timestamp, content, tokens FROM notes ORDER BY timestamp DESC LIMIT 200"
-        ).fetchall()
-        for note in notes:
-            doc_tokens = json.loads(note[3]) if note[3] else []
-            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
-                continue
+        for note, doc_tokens in relevant_notes:
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
             sim = self._cosine_similarity(query_vec, doc_vec)
             if sim > 0.05:
