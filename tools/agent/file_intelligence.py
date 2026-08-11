@@ -314,6 +314,7 @@ def search(query, top_k=20, file_type=None, days=None):
     mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0
 
     # Score each document
+    query_terms_set = set(query_tokens)
     scored = []
 
     # ⚡ Bolt: Pre-calculate loop invariants
@@ -322,7 +323,7 @@ def search(query, top_k=20, file_type=None, days=None):
 
     for row in rows:
         doc_tokens = json.loads(row[5]) if row[5] else []
-        if not doc_tokens:
+        if not doc_tokens or query_terms_set.isdisjoint(doc_tokens):
             continue
 
         # ⚡ Bolt: Short-circuit scoring for documents with no overlapping terms
