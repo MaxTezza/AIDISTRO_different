@@ -14,3 +14,7 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+## 2026-07-28 - TF-IDF Pre-calculation Optimization
+
+**Learning:** When generating large vocabularies in testing and retrieving frequencies inside an evaluation loop (like in `tools/agent/conversation_memory.py`), loading the entire document frequency table into memory via `conn.execute("SELECT term, count FROM doc_freq").fetchall()` can cause significant memory and time overhead as the dictionary size grows. Replacing the full table load with a targeted pre-fetch for required terms using batched queries avoids O(N) database redundant fetches and prevents a massive memory regression when the corpus vocabulary expands.
+**Action:** Always extract all potential matching terms (using sets) by scanning the matching subset of documents first. Then, query specifically for those terms in large vocabulary datasets instead of dumping the whole database into Python cache.
