@@ -14,3 +14,8 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+
+## 2026-06-25 - TF-IDF Pre-calculation Cache Memory Leak
+
+**Learning:** In local SQLite RAG systems (like `tools/agent/conversation_memory.py`), eagerly fetching the entire vocabulary frequency table (`SELECT term, count FROM doc_freq`) into memory to avoid N+1 queries scales poorly as the database grows, inflating memory usage and load times unnecessarily.
+**Action:** Use a two-pass approach: first iterate through documents to identify matching ones via a disjoint set check and collect their unique terms, then perform a single batched `IN` query to fetch frequencies *only* for the necessary terms.
