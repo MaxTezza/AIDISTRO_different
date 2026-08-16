@@ -230,12 +230,12 @@ def index_files(incremental=True):
                 )
 
                 # Update document frequency
-                for term in set(all_tokens):
-                    conn.execute(
-                        "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
-                        "ON CONFLICT(term) DO UPDATE SET count = count + 1",
-                        (term,)
-                    )
+                # ⚡ Bolt: Use executemany to batch insert/update terms instead of a loop
+                conn.executemany(
+                    "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
+                    "ON CONFLICT(term) DO UPDATE SET count = count + 1",
+                    [(t,) for t in set(all_tokens)]
+                )
 
                 indexed += 1
 
