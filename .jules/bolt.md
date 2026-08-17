@@ -14,3 +14,8 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+
+## 2024-08-17 - File Intelligence SQLite N+1 Batching
+
+**Learning:** When updating term frequencies during indexing in `tools/agent/file_intelligence.py`, a `conn.execute` loop creates a severe SQLite N+1 bottleneck, especially given the number of unique terms in files.
+**Action:** Always batch `INSERT ... ON CONFLICT` operations using `conn.executemany` instead of looping with individual `conn.execute` calls to prevent I/O blocking.
