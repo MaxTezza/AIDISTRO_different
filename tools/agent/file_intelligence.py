@@ -229,12 +229,13 @@ def index_files(incremental=True):
                      json.dumps(all_tokens[:500]), preview)
                 )
 
-                # Update document frequency
-                for term in set(all_tokens):
-                    conn.execute(
+                # ⚡ Bolt: Update document frequency using batched executemany to avoid N+1 query bottleneck
+                unique_terms = set(all_tokens)
+                if unique_terms:
+                    conn.executemany(
                         "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
                         "ON CONFLICT(term) DO UPDATE SET count = count + 1",
-                        (term,)
+                        [(term,) for term in unique_terms]
                     )
 
                 indexed += 1
