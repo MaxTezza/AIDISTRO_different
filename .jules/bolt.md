@@ -14,3 +14,6 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+## 2026-06-18 - SQLite Table Scan in TF-IDF Implementations
+**Learning:** When retrieving document frequencies (IDF) for TF-IDF calculations, fetching the entire vocabulary table into memory initially scales poorly. A large vocabulary (e.g., 100k terms) significantly degrades performance before similarity matching even begins.
+**Action:** When calculating term frequencies for local search, use a two-pass approach. First, quickly identify candidate matching documents using set intersection short-circuits. Second, collect the unique terms only from those candidate documents, and query their document frequencies from SQLite using batched `IN (...)` queries.
