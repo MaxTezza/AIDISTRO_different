@@ -14,3 +14,7 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+## 2026-06-16 - Pre-calculate Query Magnitude in Similarity Search Loop
+
+**Learning:** When calculating vector similarities like cosine similarity in a loop, mathematical operations on loop invariant constants (such as computing the magnitude of the query vector) cause substantial redundant overhead if performed inside the loop per document.
+**Action:** Pre-calculate invariant properties (e.g. `mag_q = math.sqrt(...)`) before the evaluation loop, and pass the cached value down to similarity functions to avoid O(N) repetitive work.
