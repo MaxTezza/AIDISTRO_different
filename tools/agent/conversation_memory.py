@@ -82,13 +82,12 @@ class ConversationMemory:
 
     def _update_doc_freq(self, tokens, conn):
         """Update document frequency for IDF computation."""
-        unique_terms = set(tokens)
-        for term in unique_terms:
-            conn.execute(
-                "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
-                "ON CONFLICT(term) DO UPDATE SET count = count + 1",
-                (term,)
-            )
+        unique_terms = list(set(tokens))
+        conn.executemany(
+            "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
+            "ON CONFLICT(term) DO UPDATE SET count = count + 1",
+            [(term,) for term in unique_terms]
+        )
 
     def _compute_tfidf(self, tokens, conn, num_docs=None, df_cache=None):
         """Compute TF-IDF vector for a set of tokens."""
@@ -119,13 +118,14 @@ class ConversationMemory:
             vector[term] = term_freq * idf
         return vector
 
-    def _cosine_similarity(self, vec_a, vec_b):
+    def _cosine_similarity(self, vec_a, vec_b, mag_a=None):
         """Compute cosine similarity between two sparse vectors (dicts)."""
         common = set(vec_a.keys()) & set(vec_b.keys())
         if not common:
             return 0.0
         dot = sum(vec_a[k] * vec_b[k] for k in common)
-        mag_a = math.sqrt(sum(v ** 2 for v in vec_a.values()))
+        if mag_a is None:
+            mag_a = math.sqrt(sum(v ** 2 for v in vec_a.values()))
         mag_b = math.sqrt(sum(v ** 2 for v in vec_b.values()))
         if mag_a == 0 or mag_b == 0:
             return 0.0
@@ -184,6 +184,9 @@ class ConversationMemory:
         query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
         query_terms = set(query_tokens)
 
+        # ⚡ Bolt: Pre-calculate loop invariants
+        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0.0
+
         # Score all conversations
         rows = conn.execute(
             "SELECT id, timestamp, user_message, ai_response, context, tokens, importance "
@@ -196,7 +199,7 @@ class ConversationMemory:
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+            sim = self._cosine_similarity(query_vec, doc_vec, mag_a=mag_q)
             # Boost by importance
             sim *= row[6]
             if sim > 0.05:
@@ -218,7 +221,7 @@ class ConversationMemory:
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+            sim = self._cosine_similarity(query_vec, doc_vec, mag_a=mag_q)
             if sim > 0.05:
                 scored.append({
                     "id": f"note-{note[0]}",
