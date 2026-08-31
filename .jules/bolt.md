@@ -14,3 +14,7 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+## 2026-06-20 - Avoid loading full vocab in memory for TF-IDF
+
+**Learning:** When retrieving reference data for TF-IDF scoring in Python from an SQLite database (like in `tools/agent/conversation_memory.py`), loading the entire `doc_freq` vocabulary table into memory is highly inefficient (e.g. `df_rows = conn.execute("SELECT term, count FROM doc_freq").fetchall()`). In datasets with large vocabularies, this approach adds significant overhead and memory consumption (e.g., performance dropping from 0.009s to 0.15s in benchmarks).
+**Action:** Use a two-pass approach to optimize memory and speed: first, find matching documents and collect all unique terms they contain; then, fetch document frequencies *only* for these required terms using batched SQLite `IN (...)` queries (chunked to respect SQLite limits).
