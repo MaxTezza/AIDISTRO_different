@@ -119,13 +119,14 @@ class ConversationMemory:
             vector[term] = term_freq * idf
         return vector
 
-    def _cosine_similarity(self, vec_a, vec_b):
+    def _cosine_similarity(self, vec_a, vec_b, mag_a=None):
         """Compute cosine similarity between two sparse vectors (dicts)."""
         common = set(vec_a.keys()) & set(vec_b.keys())
         if not common:
             return 0.0
         dot = sum(vec_a[k] * vec_b[k] for k in common)
-        mag_a = math.sqrt(sum(v ** 2 for v in vec_a.values()))
+        if mag_a is None:
+            mag_a = math.sqrt(sum(v ** 2 for v in vec_a.values()))
         mag_b = math.sqrt(sum(v ** 2 for v in vec_b.values()))
         if mag_a == 0 or mag_b == 0:
             return 0.0
@@ -178,25 +179,55 @@ class ConversationMemory:
         num_docs = max(num_docs_row[0], 1)
 
         # Load doc frequencies into memory
-        df_rows = conn.execute("SELECT term, count FROM doc_freq").fetchall()
-        df_cache = {row[0]: row[1] for row in df_rows}
-
-        query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
+        # ⚡ Bolt: Fetch document frequencies ONLY for terms present in matching documents to avoid massive full table scans
         query_terms = set(query_tokens)
 
-        # Score all conversations
+        # First, find which documents actually overlap with the query
         rows = conn.execute(
             "SELECT id, timestamp, user_message, ai_response, context, tokens, importance "
             "FROM conversations ORDER BY timestamp DESC LIMIT 500"
         ).fetchall()
 
-        scored = []
+        notes = conn.execute(
+            "SELECT id, timestamp, content, tokens FROM notes ORDER BY timestamp DESC LIMIT 200"
+        ).fetchall()
+
+        matched_convos = []
+        matched_notes = []
+        doc_terms_set = set(query_tokens)
+
         for row in rows:
             doc_tokens = json.loads(row[5]) if row[5] else []
-            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
-                continue
+            if doc_tokens and not query_terms.isdisjoint(doc_tokens):
+                matched_convos.append((row, doc_tokens))
+                doc_terms_set.update(doc_tokens)
+
+        for note in notes:
+            doc_tokens = json.loads(note[3]) if note[3] else []
+            if doc_tokens and not query_terms.isdisjoint(doc_tokens):
+                matched_notes.append((note, doc_tokens))
+                doc_terms_set.update(doc_tokens)
+
+        # Now fetch frequencies ONLY for those terms
+        df_cache = {}
+        unique_terms = list(doc_terms_set)
+        for i in range(0, len(unique_terms), 999):
+            chunk = unique_terms[i:i+999]
+            placeholders = ",".join(["?"] * len(chunk))
+            df_rows = conn.execute(
+                f"SELECT term, count FROM doc_freq WHERE term IN ({placeholders})", chunk
+            ).fetchall()
+            for r in df_rows:
+                df_cache[r[0]] = r[1]
+
+        # Re-compute query vector now that we have df_cache populated
+        query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
+        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0
+
+        scored = []
+        for row, doc_tokens in matched_convos:
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+            sim = self._cosine_similarity(query_vec, doc_vec, mag_a=mag_q)
             # Boost by importance
             sim *= row[6]
             if sim > 0.05:
@@ -209,16 +240,9 @@ class ConversationMemory:
                     "similarity": round(sim, 4),
                 })
 
-        # Also search notes
-        notes = conn.execute(
-            "SELECT id, timestamp, content, tokens FROM notes ORDER BY timestamp DESC LIMIT 200"
-        ).fetchall()
-        for note in notes:
-            doc_tokens = json.loads(note[3]) if note[3] else []
-            if not doc_tokens or query_terms.isdisjoint(doc_tokens):
-                continue
+        for note, doc_tokens in matched_notes:
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+            sim = self._cosine_similarity(query_vec, doc_vec, mag_a=mag_q)
             if sim > 0.05:
                 scored.append({
                     "id": f"note-{note[0]}",
