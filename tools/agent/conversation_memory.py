@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 AI Distro — Conversation Memory (Local RAG)
 
@@ -28,17 +27,9 @@ import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-
-DB_PATH = Path(os.path.expanduser("~/.cache/ai-distro/memory.db"))
-MAX_CONTEXT_TOKENS = 2000  # Approximate limit for prompt injection
-STOP_WORDS = frozenset(
-    "a an the is are was were be been being have has had do does did will would "
-    "shall should may might can could i me my we our you your he she it they them "
-    "this that these those am to in for on with at by from of and but or not no "
-    "so if then else than too very just about also how what when where which who "
-    "all each every both few more most other some such".split()
-)
-
+DB_PATH = Path(os.path.expanduser('~/.cache/ai-distro/memory.db'))
+MAX_CONTEXT_TOKENS = 2000
+STOP_WORDS = frozenset('a an the is are was were be been being have has had do does did will would shall should may might can could i me my we our you your he she it they them this that these those am to in for on with at by from of and but or not no so if then else than too very just about also how what when where which who all each every both few more most other some such'.split())
 
 class ConversationMemory:
     """Local conversation memory with TF-IDF semantic search."""
@@ -51,201 +42,122 @@ class ConversationMemory:
     def _init_db(self):
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
-        c.execute("""CREATE TABLE IF NOT EXISTS conversations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp REAL NOT NULL,
-            user_message TEXT NOT NULL,
-            ai_response TEXT NOT NULL,
-            context TEXT,
-            tokens TEXT,
-            importance REAL DEFAULT 1.0
-        )""")
-        c.execute("""CREATE TABLE IF NOT EXISTS notes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp REAL NOT NULL,
-            content TEXT NOT NULL,
-            tokens TEXT,
-            source TEXT DEFAULT 'user'
-        )""")
-        # Document frequency table for IDF
-        c.execute("""CREATE TABLE IF NOT EXISTS doc_freq (
-            term TEXT PRIMARY KEY,
-            count INTEGER DEFAULT 0
-        )""")
+        c.execute('CREATE TABLE IF NOT EXISTS conversations (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            timestamp REAL NOT NULL,\n            user_message TEXT NOT NULL,\n            ai_response TEXT NOT NULL,\n            context TEXT,\n            tokens TEXT,\n            importance REAL DEFAULT 1.0\n        )')
+        c.execute("CREATE TABLE IF NOT EXISTS notes (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            timestamp REAL NOT NULL,\n            content TEXT NOT NULL,\n            tokens TEXT,\n            source TEXT DEFAULT 'user'\n        )")
+        c.execute('CREATE TABLE IF NOT EXISTS doc_freq (\n            term TEXT PRIMARY KEY,\n            count INTEGER DEFAULT 0\n        )')
         conn.commit()
         conn.close()
 
     def _tokenize(self, text):
         """Simple tokenizer: lowercase, split, remove stop words and short tokens."""
-        text = re.sub(r"[^a-zA-Z0-9\s]", " ", text.lower())
+        text = re.sub('[^a-zA-Z0-9\\s]', ' ', text.lower())
         return [w for w in text.split() if w not in STOP_WORDS and len(w) > 2]
 
     def _update_doc_freq(self, tokens, conn):
         """Update document frequency for IDF computation."""
         unique_terms = set(tokens)
         for term in unique_terms:
-            conn.execute(
-                "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
-                "ON CONFLICT(term) DO UPDATE SET count = count + 1",
-                (term,)
-            )
+            conn.execute('INSERT INTO doc_freq (term, count) VALUES (?, 1) ON CONFLICT(term) DO UPDATE SET count = count + 1', (term,))
 
     def _compute_tfidf(self, tokens, conn, num_docs=None, df_cache=None):
         """Compute TF-IDF vector for a set of tokens."""
         tf = Counter(tokens)
         total = len(tokens) or 1
-
         if num_docs is None:
-            # Get total document count
-            row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
+            row = conn.execute('SELECT COUNT(*) FROM conversations').fetchone()
             num_docs = max(row[0], 1)
-
         vector = {}
         for term, count in tf.items():
-            # TF: normalized by document length
             term_freq = count / total
-            # IDF: log(N / df)
             if df_cache is not None and term in df_cache:
                 doc_freq = df_cache[term]
             else:
-                df_row = conn.execute(
-                    "SELECT count FROM doc_freq WHERE term = ?", (term,)
-                ).fetchone()
+                df_row = conn.execute('SELECT count FROM doc_freq WHERE term = ?', (term,)).fetchone()
                 doc_freq = df_row[0] if df_row else 1
                 if df_cache is not None:
                     df_cache[term] = doc_freq
-
             idf = math.log(num_docs / doc_freq) + 1.0
             vector[term] = term_freq * idf
         return vector
 
-    def _cosine_similarity(self, vec_a, vec_b):
+    def _cosine_similarity(self, vec_a, vec_b, mag_a=None):
         """Compute cosine similarity between two sparse vectors (dicts)."""
         common = set(vec_a.keys()) & set(vec_b.keys())
         if not common:
             return 0.0
-        dot = sum(vec_a[k] * vec_b[k] for k in common)
-        mag_a = math.sqrt(sum(v ** 2 for v in vec_a.values()))
-        mag_b = math.sqrt(sum(v ** 2 for v in vec_b.values()))
+        dot = sum((vec_a[k] * vec_b[k] for k in common))
+        if mag_a is None:
+            mag_a = math.sqrt(sum((v ** 2 for v in vec_a.values())))
+        mag_b = math.sqrt(sum((v ** 2 for v in vec_b.values())))
         if mag_a == 0 or mag_b == 0:
             return 0.0
         return dot / (mag_a * mag_b)
 
-    # ── Public API ──────────────────────────────────────────────
-
     def store(self, user_message, ai_response, context=None, importance=1.0):
         """Store a conversation turn."""
-        combined = f"{user_message} {ai_response}"
+        combined = f'{user_message} {ai_response}'
         tokens = self._tokenize(combined)
         now = datetime.now().timestamp()
-
         conn = sqlite3.connect(self.db_path)
-        conn.execute(
-            "INSERT INTO conversations (timestamp, user_message, ai_response, context, tokens, importance) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (now, user_message, ai_response, context, json.dumps(tokens), importance)
-        )
+        conn.execute('INSERT INTO conversations (timestamp, user_message, ai_response, context, tokens, importance) VALUES (?, ?, ?, ?, ?, ?)', (now, user_message, ai_response, context, json.dumps(tokens), importance))
         self._update_doc_freq(tokens, conn)
         conn.commit()
         conn.close()
+        return {'status': 'ok', 'tokens': len(tokens)}
 
-        return {"status": "ok", "tokens": len(tokens)}
-
-    def store_note(self, content, source="user"):
+    def store_note(self, content, source='user'):
         """Store a standalone note/fact for later recall."""
         tokens = self._tokenize(content)
         now = datetime.now().timestamp()
-
         conn = sqlite3.connect(self.db_path)
-        conn.execute(
-            "INSERT INTO notes (timestamp, content, tokens, source) VALUES (?, ?, ?, ?)",
-            (now, content, json.dumps(tokens), source)
-        )
+        conn.execute('INSERT INTO notes (timestamp, content, tokens, source) VALUES (?, ?, ?, ?)', (now, content, json.dumps(tokens), source))
         conn.commit()
         conn.close()
-        return {"status": "ok"}
+        return {'status': 'ok'}
 
     def recall(self, query, top_k=5):
         """Semantic search: find conversations most similar to query."""
         query_tokens = self._tokenize(query)
         if not query_tokens:
             return []
-
         conn = sqlite3.connect(self.db_path)
-
-        # OPTIMIZATION: Cache document count and term frequencies to prevent N+1 query bottleneck
-        num_docs_row = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()
+        num_docs_row = conn.execute('SELECT COUNT(*) FROM conversations').fetchone()
         num_docs = max(num_docs_row[0], 1)
-
-        # Load doc frequencies into memory
-        df_rows = conn.execute("SELECT term, count FROM doc_freq").fetchall()
+        df_rows = conn.execute('SELECT term, count FROM doc_freq').fetchall()
         df_cache = {row[0]: row[1] for row in df_rows}
-
         query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
         query_terms = set(query_tokens)
-
-        # Score all conversations
-        rows = conn.execute(
-            "SELECT id, timestamp, user_message, ai_response, context, tokens, importance "
-            "FROM conversations ORDER BY timestamp DESC LIMIT 500"
-        ).fetchall()
-
+        mag_q = math.sqrt(sum((v ** 2 for v in query_vec.values()))) if query_vec else 0.0
+        rows = conn.execute('SELECT id, timestamp, user_message, ai_response, context, tokens, importance FROM conversations ORDER BY timestamp DESC LIMIT 500').fetchall()
         scored = []
         for row in rows:
             doc_tokens = json.loads(row[5]) if row[5] else []
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
-            # Boost by importance
+            sim = self._cosine_similarity(query_vec, doc_vec, mag_a=mag_q)
             sim *= row[6]
             if sim > 0.05:
-                scored.append({
-                    "id": row[0],
-                    "time": datetime.fromtimestamp(row[1]).strftime("%Y-%m-%d %H:%M"),
-                    "user": row[2],
-                    "ai": row[3],
-                    "context": row[4],
-                    "similarity": round(sim, 4),
-                })
-
-        # Also search notes
-        notes = conn.execute(
-            "SELECT id, timestamp, content, tokens FROM notes ORDER BY timestamp DESC LIMIT 200"
-        ).fetchall()
+                scored.append({'id': row[0], 'time': datetime.fromtimestamp(row[1]).strftime('%Y-%m-%d %H:%M'), 'user': row[2], 'ai': row[3], 'context': row[4], 'similarity': round(sim, 4)})
+        notes = conn.execute('SELECT id, timestamp, content, tokens FROM notes ORDER BY timestamp DESC LIMIT 200').fetchall()
         for note in notes:
             doc_tokens = json.loads(note[3]) if note[3] else []
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+            sim = self._cosine_similarity(query_vec, doc_vec, mag_a=mag_q)
             if sim > 0.05:
-                scored.append({
-                    "id": f"note-{note[0]}",
-                    "time": datetime.fromtimestamp(note[1]).strftime("%Y-%m-%d %H:%M"),
-                    "user": note[2],
-                    "ai": "(stored note)",
-                    "similarity": round(sim, 4),
-                })
-
+                scored.append({'id': f'note-{note[0]}', 'time': datetime.fromtimestamp(note[1]).strftime('%Y-%m-%d %H:%M'), 'user': note[2], 'ai': '(stored note)', 'similarity': round(sim, 4)})
         conn.close()
-
-        scored.sort(key=lambda x: x["similarity"], reverse=True)
+        scored.sort(key=lambda x: x['similarity'], reverse=True)
         return scored[:top_k]
 
     def recent(self, n=10):
         """Get the N most recent conversations."""
         conn = sqlite3.connect(self.db_path)
-        rows = conn.execute(
-            "SELECT id, timestamp, user_message, ai_response, context "
-            "FROM conversations ORDER BY timestamp DESC LIMIT ?", (n,)
-        ).fetchall()
+        rows = conn.execute('SELECT id, timestamp, user_message, ai_response, context FROM conversations ORDER BY timestamp DESC LIMIT ?', (n,)).fetchall()
         conn.close()
-        return [{
-            "id": r[0],
-            "time": datetime.fromtimestamp(r[1]).strftime("%Y-%m-%d %H:%M"),
-            "user": r[2], "ai": r[3], "context": r[4],
-        } for r in rows]
+        return [{'id': r[0], 'time': datetime.fromtimestamp(r[1]).strftime('%Y-%m-%d %H:%M'), 'user': r[2], 'ai': r[3], 'context': r[4]} for r in rows]
 
     def get_prompt_context(self, current_query=None, max_chars=MAX_CONTEXT_TOKENS * 4):
         """
@@ -253,95 +165,71 @@ class ConversationMemory:
         Includes recent history + relevant recalled memories.
         """
         lines = []
-
-        # Recent conversations (last 3)
         recents = self.recent(3)
         if recents:
-            lines.append("RECENT CONVERSATION HISTORY:")
+            lines.append('RECENT CONVERSATION HISTORY:')
             for r in reversed(recents):
                 lines.append(f"  [{r['time']}] User: {r['user'][:100]}")
                 lines.append(f"  [{r['time']}] AI: {r['ai'][:100]}")
-
-        # Semantic recall if we have a query
         if current_query:
             recalled = self.recall(current_query, top_k=3)
             if recalled:
-                lines.append("\nRELEVANT PAST CONVERSATIONS:")
+                lines.append('\nRELEVANT PAST CONVERSATIONS:')
                 for r in recalled:
                     lines.append(f"  [{r['time']}] (similarity: {r['similarity']}) User: {r['user'][:100]}")
-                    if r['ai'] != "(stored note)":
+                    if r['ai'] != '(stored note)':
                         lines.append(f"  [{r['time']}] AI: {r['ai'][:100]}")
-
-        result = "\n".join(lines)
+        result = '\n'.join(lines)
         return result[:max_chars]
 
     def stats(self):
         """Get memory statistics."""
         conn = sqlite3.connect(self.db_path)
-        convos = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
-        notes_count = conn.execute("SELECT COUNT(*) FROM notes").fetchone()[0]
-        terms = conn.execute("SELECT COUNT(*) FROM doc_freq").fetchone()[0]
-        oldest = conn.execute("SELECT MIN(timestamp) FROM conversations").fetchone()[0]
-        newest = conn.execute("SELECT MAX(timestamp) FROM conversations").fetchone()[0]
+        convos = conn.execute('SELECT COUNT(*) FROM conversations').fetchone()[0]
+        notes_count = conn.execute('SELECT COUNT(*) FROM notes').fetchone()[0]
+        terms = conn.execute('SELECT COUNT(*) FROM doc_freq').fetchone()[0]
+        oldest = conn.execute('SELECT MIN(timestamp) FROM conversations').fetchone()[0]
+        newest = conn.execute('SELECT MAX(timestamp) FROM conversations').fetchone()[0]
         conn.close()
-        return {
-            "conversations": convos,
-            "notes": notes_count,
-            "unique_terms": terms,
-            "since": datetime.fromtimestamp(oldest).isoformat() if oldest else None,
-            "latest": datetime.fromtimestamp(newest).isoformat() if newest else None,
-        }
+        return {'conversations': convos, 'notes': notes_count, 'unique_terms': terms, 'since': datetime.fromtimestamp(oldest).isoformat() if oldest else None, 'latest': datetime.fromtimestamp(newest).isoformat() if newest else None}
 
     def clear(self):
         """Wipe all conversation memory."""
         conn = sqlite3.connect(self.db_path)
-        for table in ["conversations", "notes", "doc_freq"]:
-            conn.execute(f"DELETE FROM {table}")
+        for table in ['conversations', 'notes', 'doc_freq']:
+            conn.execute(f'DELETE FROM {table}')
         conn.commit()
         conn.close()
-        return {"status": "ok", "message": "All memory cleared"}
-
+        return {'status': 'ok', 'message': 'All memory cleared'}
 
 def main():
     mem = ConversationMemory()
-
     if len(sys.argv) < 2:
-        print("Usage: conversation_memory.py <store|recall|recent|stats|clear>")
+        print('Usage: conversation_memory.py <store|recall|recent|stats|clear>')
         return
-
     cmd = sys.argv[1]
-
-    if cmd == "store":
-        user_msg = sys.argv[2] if len(sys.argv) > 2 else ""
-        ai_msg = sys.argv[3] if len(sys.argv) > 3 else ""
+    if cmd == 'store':
+        user_msg = sys.argv[2] if len(sys.argv) > 2 else ''
+        ai_msg = sys.argv[3] if len(sys.argv) > 3 else ''
         print(json.dumps(mem.store(user_msg, ai_msg), indent=2))
-
-    elif cmd == "note":
-        content = " ".join(sys.argv[2:])
+    elif cmd == 'note':
+        content = ' '.join(sys.argv[2:])
         print(json.dumps(mem.store_note(content), indent=2))
-
-    elif cmd == "recall":
-        query = " ".join(sys.argv[2:])
+    elif cmd == 'recall':
+        query = ' '.join(sys.argv[2:])
         results = mem.recall(query)
         print(json.dumps(results, indent=2))
-
-    elif cmd == "recent":
+    elif cmd == 'recent':
         n = int(sys.argv[2]) if len(sys.argv) > 2 else 10
         print(json.dumps(mem.recent(n), indent=2))
-
-    elif cmd == "context":
-        query = " ".join(sys.argv[2:]) if len(sys.argv) > 2 else None
+    elif cmd == 'context':
+        query = ' '.join(sys.argv[2:]) if len(sys.argv) > 2 else None
         print(mem.get_prompt_context(query))
-
-    elif cmd == "stats":
+    elif cmd == 'stats':
         print(json.dumps(mem.stats(), indent=2))
-
-    elif cmd == "clear":
+    elif cmd == 'clear':
         print(json.dumps(mem.clear(), indent=2))
-
     else:
-        print(f"Unknown command: {cmd}")
-
-
-if __name__ == "__main__":
+        print(f'Unknown command: {cmd}')
+if __name__ == '__main__':
     main()
