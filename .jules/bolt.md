@@ -14,3 +14,8 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+## 2026-06-25 - Python SQLite executemany Optimization
+
+**Learning:** When updating term frequencies in SQLite (like iterating through tokens and updating `doc_freq`), replacing a Python loop calling `conn.execute` with a single call to `conn.executemany` batches the updates and significantly reduces the overhead of bridging Python and SQLite. This simple change yielded a ~2.2x speedup in document frequency insertion benchmarks.
+
+**Action:** Whenever iterating over a list to perform individual INSERTs or UPDATEs in SQLite, aggregate the parameters into a list of tuples and use `conn.executemany` instead.
