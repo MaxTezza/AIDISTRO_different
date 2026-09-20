@@ -14,3 +14,7 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+
+## 2026-06-16 - SQLite Batched Inserts
+**Learning:** When rapidly inserting unique terms into a local SQLite database table like `doc_freq` during file indexing or conversation storage, looping `conn.execute()` causes substantial overhead. Utilizing `conn.executemany()` for batched inserts reduces the database commit lock overhead and massively improves index speed.
+**Action:** Always use `conn.executemany()` instead of iterating with `conn.execute()` when inserting lists of records, particularly `INSERT ... ON CONFLICT DO UPDATE` queries for frequency counting in SQLite databases.
