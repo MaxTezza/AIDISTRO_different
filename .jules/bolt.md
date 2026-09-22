@@ -14,3 +14,7 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+## 2026-06-20 - SQLite Full Table Fetch Bottleneck
+
+**Learning:** In semantic search implementations like `tools/agent/conversation_memory.py`, querying `SELECT term, count FROM doc_freq` to load the entire vocabulary's document frequencies into memory can become a massive bottleneck as the index grows. Fetching tens of thousands of terms when a query might only match documents containing a few dozen unique terms is extremely inefficient.
+**Action:** When optimizing SQLite database lookups for TF-IDF to avoid N+1 query bottlenecks, do not fetch the entire vocabulary table into memory. Instead, use a two-pass approach: first identify matching documents based on short-circuit disjoint checks, collect all unique terms from only those matched documents, and then fetch document frequencies only for those specific terms using batched `IN (...)` queries (chunked to respect SQLite limits).
