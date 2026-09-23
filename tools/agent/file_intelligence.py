@@ -331,20 +331,22 @@ def search(query, top_k=20, file_type=None, days=None):
 
         doc_tf = Counter(doc_tokens)
         total_d = len(doc_tokens) or 1
-        doc_vec = {}
-        for term, count in doc_tf.items():
-            if term in query_vec:
-                tf = count / total_d
-                # ⚡ Bolt: Use pre-calculated IDF instead of querying DB in a loop
-                doc_vec[term] = tf * term_idfs[term]
 
-        if not doc_vec:
+        # ⚡ Bolt: Iterate over short query_vec instead of long doc_tf to compute similarity
+        dot = 0.0
+        mag_d_sq = 0.0
+
+        for term, q_val in query_vec.items():
+            count = doc_tf.get(term, 0)
+            if count > 0:
+                d_val = (count / total_d) * term_idfs[term]
+                dot += q_val * d_val
+                mag_d_sq += d_val ** 2
+
+        if not dot:
             continue
 
-        # Cosine similarity
-        common = set(query_vec.keys()) & set(doc_vec.keys())
-        dot = sum(query_vec[k] * doc_vec[k] for k in common)
-        mag_d = math.sqrt(sum(v ** 2 for v in doc_vec.values()))
+        mag_d = math.sqrt(mag_d_sq)
         sim = dot / (mag_q * mag_d) if mag_q and mag_d else 0
 
         if sim > 0.02:

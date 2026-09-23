@@ -14,3 +14,7 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+
+## 2026-06-25 - TF-IDF Vector Similarity Single-Loop Optimization
+**Learning:** When computing cosine similarity between a sparse query vector and a document vector in Python, constructing a full intermediate `doc_vec` dictionary by iterating over all document terms is inefficient, especially for large documents. The overhead of dictionary operations and multiple passes (building dict, finding common keys, calculating dot product, calculating magnitude) dominates execution time.
+**Action:** Bypass creating intermediate vector dictionaries. Iterate directly over the typically much smaller `query_vec.items()`, use `.get(term, 0)` on the document's term frequency counter, and compute the dot product and partial document magnitude (`mag_d_sq`) in a single pass. This reduces O(V_doc) dictionary building to O(V_query) lookups and significantly improves search latency.
