@@ -230,11 +230,13 @@ def index_files(incremental=True):
                 )
 
                 # Update document frequency
-                for term in set(all_tokens):
-                    conn.execute(
+                # ⚡ Bolt: Use executemany to batch INSERT INTO doc_freq ON CONFLICT operations to avoid N+1 SQLite bottlenecks
+                unique_terms = set(all_tokens)
+                if unique_terms:
+                    conn.executemany(
                         "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
                         "ON CONFLICT(term) DO UPDATE SET count = count + 1",
-                        (term,)
+                        [(term,) for term in unique_terms]
                     )
 
                 indexed += 1
