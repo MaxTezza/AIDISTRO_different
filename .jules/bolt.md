@@ -14,3 +14,7 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+
+## 2026-10-01 - Avoid Dict Construction in TF-IDF Vector Similarity
+**Learning:** When evaluating document vector similarities for a large corpus, creating intermediate full document vector dictionaries (like `doc_vec = {}` mapping all overlapping terms) and performing set intersections (`common = set(query_vec.keys()) & set(doc_vec.keys())`) adds massive memory and time overhead.
+**Action:** Instead, iterate directly over `query_vec.items()`, use `doc_tf.get(term, 0)` for safety, and compute both the dot product and the document magnitude in one single pass. This avoids O(N) dict allocations and makes the search substantially faster.
