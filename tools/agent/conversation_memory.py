@@ -119,17 +119,7 @@ class ConversationMemory:
             vector[term] = term_freq * idf
         return vector
 
-    def _cosine_similarity(self, vec_a, vec_b):
-        """Compute cosine similarity between two sparse vectors (dicts)."""
-        common = set(vec_a.keys()) & set(vec_b.keys())
-        if not common:
-            return 0.0
-        dot = sum(vec_a[k] * vec_b[k] for k in common)
-        mag_a = math.sqrt(sum(v ** 2 for v in vec_a.values()))
-        mag_b = math.sqrt(sum(v ** 2 for v in vec_b.values()))
-        if mag_a == 0 or mag_b == 0:
-            return 0.0
-        return dot / (mag_a * mag_b)
+
 
     # ── Public API ──────────────────────────────────────────────
 
@@ -183,6 +173,7 @@ class ConversationMemory:
 
         query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
         query_terms = set(query_tokens)
+        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0.0
 
         # Score all conversations
         rows = conn.execute(
@@ -195,8 +186,34 @@ class ConversationMemory:
             doc_tokens = json.loads(row[5]) if row[5] else []
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
-            doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+
+            doc_tf = Counter(doc_tokens)
+            total_d = len(doc_tokens) or 1
+
+            dot = 0.0
+            mag_d_sq = 0.0
+
+            for term, q_val in query_vec.items():
+                count = doc_tf.get(term, 0)
+                if count > 0:
+                    doc_freq = df_cache.get(term, 1)
+                    d_val = (count / total_d) * (math.log(num_docs / doc_freq) + 1.0)
+                    dot += q_val * d_val
+
+            if dot == 0:
+                continue
+
+            for term, count in doc_tf.items():
+                doc_freq = df_cache.get(term, 1)
+                d_val = (count / total_d) * (math.log(num_docs / doc_freq) + 1.0)
+                mag_d_sq += d_val ** 2
+
+            if mag_d_sq == 0:
+                continue
+
+            mag_d = math.sqrt(mag_d_sq)
+            sim = dot / (mag_q * mag_d) if mag_q and mag_d else 0.0
+
             # Boost by importance
             sim *= row[6]
             if sim > 0.05:
@@ -217,8 +234,34 @@ class ConversationMemory:
             doc_tokens = json.loads(note[3]) if note[3] else []
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
-            doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+
+            doc_tf = Counter(doc_tokens)
+            total_d = len(doc_tokens) or 1
+
+            dot = 0.0
+            mag_d_sq = 0.0
+
+            for term, q_val in query_vec.items():
+                count = doc_tf.get(term, 0)
+                if count > 0:
+                    doc_freq = df_cache.get(term, 1)
+                    d_val = (count / total_d) * (math.log(num_docs / doc_freq) + 1.0)
+                    dot += q_val * d_val
+
+            if dot == 0:
+                continue
+
+            for term, count in doc_tf.items():
+                doc_freq = df_cache.get(term, 1)
+                d_val = (count / total_d) * (math.log(num_docs / doc_freq) + 1.0)
+                mag_d_sq += d_val ** 2
+
+            if mag_d_sq == 0:
+                continue
+
+            mag_d = math.sqrt(mag_d_sq)
+            sim = dot / (mag_q * mag_d) if mag_q and mag_d else 0.0
+
             if sim > 0.05:
                 scored.append({
                     "id": f"note-{note[0]}",
