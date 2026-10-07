@@ -69,11 +69,7 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_CONTENT_CHARS = 50000
 
 STOP_WORDS = frozenset(
-    "a an the is are was were be been being have has had do does did will would "
-    "shall should may might can could i me my we our you your he she it they them "
-    "this that these those am to in for on with at by from of and but or not no "
-    "so if then else than too very just about also how what when where which who "
-    "all each every both few more most other some such".split()
+    ["a", "an", "the", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "may", "might", "can", "could", "i", "me", "my", "we", "our", "you", "your", "he", "she", "it", "they", "them", "this", "that", "these", "those", "am", "to", "in", "for", "on", "with", "at", "by", "from", "of", "and", "but", "or", "not", "no", "so", "if", "then", "else", "than", "too", "very", "just", "about", "also", "how", "what", "when", "where", "which", "who", "all", "each", "every", "both", "few", "more", "most", "other", "some", "such"]
 )
 
 
@@ -154,11 +150,10 @@ def _extract_docx(filepath):
     """Extract text from DOCX (ZIP of XML)."""
     try:
         import zipfile
-        with zipfile.ZipFile(filepath) as z:
-            with z.open("word/document.xml") as doc:
-                content = doc.read().decode("utf-8", errors="ignore")
-                text = re.sub(r"<[^>]+>", " ", content)
-                return text[:MAX_CONTENT_CHARS]
+        with zipfile.ZipFile(filepath) as z, z.open("word/document.xml") as doc:
+            content = doc.read().decode("utf-8", errors="ignore")
+            text = re.sub(r"<[^>]+>", " ", content)
+            return text[:MAX_CONTENT_CHARS]
     except Exception:
         return ""
 
@@ -230,11 +225,12 @@ def index_files(incremental=True):
                 )
 
                 # Update document frequency
-                for term in set(all_tokens):
-                    conn.execute(
+                unique_terms = set(all_tokens)
+                if unique_terms:
+                    conn.executemany(
                         "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
                         "ON CONFLICT(term) DO UPDATE SET count = count + 1",
-                        (term,)
+                        [(term,) for term in unique_terms]
                     )
 
                 indexed += 1

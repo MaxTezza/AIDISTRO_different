@@ -32,11 +32,7 @@ from pathlib import Path
 DB_PATH = Path(os.path.expanduser("~/.cache/ai-distro/memory.db"))
 MAX_CONTEXT_TOKENS = 2000  # Approximate limit for prompt injection
 STOP_WORDS = frozenset(
-    "a an the is are was were be been being have has had do does did will would "
-    "shall should may might can could i me my we our you your he she it they them "
-    "this that these those am to in for on with at by from of and but or not no "
-    "so if then else than too very just about also how what when where which who "
-    "all each every both few more most other some such".split()
+    ["a", "an", "the", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "may", "might", "can", "could", "i", "me", "my", "we", "our", "you", "your", "he", "she", "it", "they", "them", "this", "that", "these", "those", "am", "to", "in", "for", "on", "with", "at", "by", "from", "of", "and", "but", "or", "not", "no", "so", "if", "then", "else", "than", "too", "very", "just", "about", "also", "how", "what", "when", "where", "which", "who", "all", "each", "every", "both", "few", "more", "most", "other", "some", "such"]
 )
 
 
@@ -83,11 +79,11 @@ class ConversationMemory:
     def _update_doc_freq(self, tokens, conn):
         """Update document frequency for IDF computation."""
         unique_terms = set(tokens)
-        for term in unique_terms:
-            conn.execute(
+        if unique_terms:
+            conn.executemany(
                 "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
                 "ON CONFLICT(term) DO UPDATE SET count = count + 1",
-                (term,)
+                [(term,) for term in unique_terms]
             )
 
     def _compute_tfidf(self, tokens, conn, num_docs=None, df_cache=None):
