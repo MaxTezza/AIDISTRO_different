@@ -229,13 +229,12 @@ def index_files(incremental=True):
                      json.dumps(all_tokens[:500]), preview)
                 )
 
-                # Update document frequency
-                for term in set(all_tokens):
-                    conn.execute(
-                        "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
-                        "ON CONFLICT(term) DO UPDATE SET count = count + 1",
-                        (term,)
-                    )
+                # Update document frequency (batched for performance)
+                conn.executemany(
+                    "INSERT INTO doc_freq (term, count) VALUES (?, 1) "
+                    "ON CONFLICT(term) DO UPDATE SET count = count + 1",
+                    [(term,) for term in set(all_tokens)]
+                )
 
                 indexed += 1
 
