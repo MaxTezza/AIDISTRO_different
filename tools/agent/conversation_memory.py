@@ -191,12 +191,25 @@ class ConversationMemory:
         ).fetchall()
 
         scored = []
+        # Pre-calculate query magnitude to avoid O(N) redundant mathematical overhead
+        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0.0
+
         for row in rows:
             doc_tokens = json.loads(row[5]) if row[5] else []
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+
+            # Inline dot product and doc magnitude calculation to avoid dict lookups and function calls
+            dot = 0.0
+            mag_d_sq = 0.0
+            for term, val in doc_vec.items():
+                if term in query_vec:
+                    dot += query_vec[term] * val
+                mag_d_sq += val ** 2
+
+            mag_d = math.sqrt(mag_d_sq)
+            sim = (dot / (mag_q * mag_d)) if mag_q and mag_d else 0.0
             # Boost by importance
             sim *= row[6]
             if sim > 0.05:
@@ -218,7 +231,16 @@ class ConversationMemory:
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+
+            dot = 0.0
+            mag_d_sq = 0.0
+            for term, val in doc_vec.items():
+                if term in query_vec:
+                    dot += query_vec[term] * val
+                mag_d_sq += val ** 2
+
+            mag_d = math.sqrt(mag_d_sq)
+            sim = (dot / (mag_q * mag_d)) if mag_q and mag_d else 0.0
             if sim > 0.05:
                 scored.append({
                     "id": f"note-{note[0]}",
