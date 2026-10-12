@@ -184,6 +184,9 @@ class ConversationMemory:
         query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
         query_terms = set(query_tokens)
 
+        # ⚡ Bolt: Pre-calculate query vector magnitude (mag_q) outside the document scoring loop
+        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0.0
+
         # Score all conversations
         rows = conn.execute(
             "SELECT id, timestamp, user_message, ai_response, context, tokens, importance "
@@ -196,7 +199,17 @@ class ConversationMemory:
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+
+            # ⚡ Bolt: Inline mathematical dot product calculation directly to avoid O(N) function call and dictionary lookup overheads
+            dot = 0.0
+            mag_d_sq = 0.0
+            for k, doc_val in doc_vec.items():
+                mag_d_sq += doc_val ** 2
+                if k in query_vec:
+                    dot += query_vec[k] * doc_val
+
+            sim = (dot / (mag_q * math.sqrt(mag_d_sq))) if mag_q > 0 and mag_d_sq > 0 else 0.0
+
             # Boost by importance
             sim *= row[6]
             if sim > 0.05:
@@ -218,7 +231,17 @@ class ConversationMemory:
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+
+            # ⚡ Bolt: Inline mathematical dot product calculation directly to avoid O(N) function call and dictionary lookup overheads
+            dot = 0.0
+            mag_d_sq = 0.0
+            for k, doc_val in doc_vec.items():
+                mag_d_sq += doc_val ** 2
+                if k in query_vec:
+                    dot += query_vec[k] * doc_val
+
+            sim = (dot / (mag_q * math.sqrt(mag_d_sq))) if mag_q > 0 and mag_d_sq > 0 else 0.0
+
             if sim > 0.05:
                 scored.append({
                     "id": f"note-{note[0]}",
