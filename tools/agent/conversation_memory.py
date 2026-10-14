@@ -32,7 +32,11 @@ from pathlib import Path
 DB_PATH = Path(os.path.expanduser("~/.cache/ai-distro/memory.db"))
 MAX_CONTEXT_TOKENS = 2000  # Approximate limit for prompt injection
 STOP_WORDS = frozenset(
-    ["a", "an", "the", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "may", "might", "can", "could", "i", "me", "my", "we", "our", "you", "your", "he", "she", "it", "they", "them", "this", "that", "these", "those", "am", "to", "in", "for", "on", "with", "at", "by", "from", "of", "and", "but", "or", "not", "no", "so", "if", "then", "else", "than", "too", "very", "just", "about", "also", "how", "what", "when", "where", "which", "who", "all", "each", "every", "both", "few", "more", "most", "other", "some", "such"]
+    "a an the is are was were be been being have has had do does did will would "
+    "shall should may might can could i me my we our you your he she it they them "
+    "this that these those am to in for on with at by from of and but or not no "
+    "so if then else than too very just about also how what when where which who "
+    "all each every both few more most other some such".split()
 )
 
 
