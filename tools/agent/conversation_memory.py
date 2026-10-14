@@ -32,11 +32,7 @@ from pathlib import Path
 DB_PATH = Path(os.path.expanduser("~/.cache/ai-distro/memory.db"))
 MAX_CONTEXT_TOKENS = 2000  # Approximate limit for prompt injection
 STOP_WORDS = frozenset(
-    "a an the is are was were be been being have has had do does did will would "
-    "shall should may might can could i me my we our you your he she it they them "
-    "this that these those am to in for on with at by from of and but or not no "
-    "so if then else than too very just about also how what when where which who "
-    "all each every both few more most other some such".split()
+    ["a", "an", "the", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "may", "might", "can", "could", "i", "me", "my", "we", "our", "you", "your", "he", "she", "it", "they", "them", "this", "that", "these", "those", "am", "to", "in", "for", "on", "with", "at", "by", "from", "of", "and", "but", "or", "not", "no", "so", "if", "then", "else", "than", "too", "very", "just", "about", "also", "how", "what", "when", "where", "which", "who", "all", "each", "every", "both", "few", "more", "most", "other", "some", "such"]
 )
 
 
@@ -184,6 +180,9 @@ class ConversationMemory:
         query_vec = self._compute_tfidf(query_tokens, conn, num_docs=num_docs, df_cache=df_cache)
         query_terms = set(query_tokens)
 
+        # ⚡ Bolt: Pre-calculate query magnitude to avoid O(N) redundant mathematical overhead
+        mag_q = math.sqrt(sum(v ** 2 for v in query_vec.values())) if query_vec else 0
+
         # Score all conversations
         rows = conn.execute(
             "SELECT id, timestamp, user_message, ai_response, context, tokens, importance "
@@ -196,7 +195,13 @@ class ConversationMemory:
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+
+            # ⚡ Bolt: Inline mathematical dot product and doc magnitude calculation to bypass full dictionary allocations and O(N) overhead
+            # and reuse pre-calculated query magnitude.
+            dot = sum(query_vec[k] * doc_vec[k] for k in query_vec if k in doc_vec)
+            mag_d = math.sqrt(sum(v ** 2 for v in doc_vec.values()))
+            sim = dot / (mag_q * mag_d) if mag_q and mag_d else 0
+
             # Boost by importance
             sim *= row[6]
             if sim > 0.05:
@@ -218,7 +223,11 @@ class ConversationMemory:
             if not doc_tokens or query_terms.isdisjoint(doc_tokens):
                 continue
             doc_vec = self._compute_tfidf(doc_tokens, conn, num_docs=num_docs, df_cache=df_cache)
-            sim = self._cosine_similarity(query_vec, doc_vec)
+
+            # ⚡ Bolt: Inline cosine similarity with pre-calculated query magnitude
+            dot = sum(query_vec[k] * doc_vec[k] for k in query_vec if k in doc_vec)
+            mag_d = math.sqrt(sum(v ** 2 for v in doc_vec.values()))
+            sim = dot / (mag_q * mag_d) if mag_q and mag_d else 0
             if sim > 0.05:
                 scored.append({
                     "id": f"note-{note[0]}",
