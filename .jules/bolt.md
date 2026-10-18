@@ -14,3 +14,6 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+## 2026-06-25 - The danger of string replacements on large constants
+**Learning:** When using Python string replace to patch logic, be extremely careful not to accidentally format or compress large constants (like `STOP_WORDS`) as a side effect. Formatting a readable string literal into a one-liner violates readability guidelines and sacrifices code quality for zero performance gain.
+**Action:** Always verify the patched file thoroughly with linters (e.g., `ruff check`) and manual inspection (`git diff`) before committing, and ensure you explicitly run `git commit --amend` to revert unintended formatting changes if they occur.
