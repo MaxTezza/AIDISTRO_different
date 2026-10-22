@@ -14,3 +14,9 @@
 
 **Learning:** When calculating vector similarities (like cosine similarity) against a large dataset inside a loop, computing loop invariants (e.g., the magnitude of a constant query vector) inside the loop introduces a massive redundant overhead (O(N) operations instead of O(1)).
 **Action:** Always pre-calculate loop invariants outside the document scoring loop. In testing with 1000 records, pulling the query magnitude calculation outside the loop alongside the disjoint set check reduced search latency from ~0.74s to ~0.41s.
+
+## 2026-06-16 - TF-IDF Full Document Magnitude Calculation
+
+**Learning:** When optimizing TF-IDF sparse vector cosine similarity in `tools/agent/file_intelligence.py` by filtering the document term loop, iterating over all document terms (`doc_tf.items()`) instead of only terms matching the query is essential. Truncating the iteration only to `query_vec` terms fails to compute the document's true magnitude (`mag_d_sq`), which inappropriately inflates the cosine similarity score for partially matching documents.
+
+**Action:** When filtering vector comparisons in an evaluation loop, ensure the full vector's properties (like `mag_d`) are correctly aggregated across all dimensions, even if the dot product dimension itself is zero. Re-calculate missing values using baseline logic (e.g. baseline IDFs for non-query document terms) to correctly reflect reality.
